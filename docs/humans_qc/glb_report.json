@@ -1,0 +1,198 @@
+{
+ "builder.glb": {
+  "sizeMB": 1.33,
+  "triangles": 30788,
+  "joints": [
+   55
+  ],
+  "morphTargets": [
+   "blink",
+   "smile",
+   "brow_raise",
+   "concentrate"
+  ],
+  "animations": [
+   {
+    "name": "idle_inspect",
+    "seconds": 4,
+    "channels": 165,
+    "morphChannels": 0
+   },
+   {
+    "name": "step_back_tablet",
+    "seconds": 4,
+    "channels": 166,
+    "morphChannels": 1
+   }
+  ],
+  "images": [
+   "builder_skin_normal:image/webp",
+   "builder_skin_albedo:image/webp",
+   "builder_skin_rough:image/webp",
+   "builder_hair_rgba:image/webp",
+   "builder_tablet_ui:image/webp",
+   "eyes_eye_albedo:image/webp",
+   "builder_outfit_normal:image/webp",
+   "builder_outfit_albedo:image/webp",
+   "builder_outfit_rough:image/webp"
+  ],
+  "extensionsUsed": [
+   "KHR_draco_mesh_compression",
+   "KHR_materials_clearcoat",
+   "EXT_texture_webp"
+  ],
+  "extensionsRequired": [
+   "KHR_draco_mesh_compression",
+   "EXT_texture_webp"
+  ],
+  "toolNodes": [
+   "tablet"
+  ]
+ },
+ "worker_mason.glb": {
+  "sizeMB": 1.06,
+  "triangles": 24613,
+  "joints": [
+   55
+  ],
+  "morphTargets": [
+   "blink",
+   "smile",
+   "brow_raise",
+   "concentrate"
+  ],
+  "animations": [
+   {
+    "name": "lay_brick",
+    "seconds": 3,
+    "channels": 169,
+    "morphChannels": 1
+   }
+  ],
+  "images": [
+   "worker_mason_skin_normal:image/webp",
+   "worker_mason_skin_albedo:image/webp",
+   "worker_mason_skin_rough:image/webp",
+   "worker_mason_hair_rgba:image/webp",
+   "worker_mason_brick_in_hand_albedo:image/webp",
+   "worker_mason_brick_placed_albedo:image/webp",
+   "worker_mason_ctx_brick_0_albedo:image/webp",
+   "worker_mason_ctx_brick_1_albedo:image/webp",
+   "worker_mason_ctx_brick_2_albedo:image/webp",
+   "eyes_eye_albedo:image/webp",
+   "worker_mason_outfit_normal:image/webp",
+   "worker_mason_outfit_albedo:image/webp",
+   "worker_mason_outfit_rough:image/webp"
+  ],
+  "extensionsUsed": [
+   "KHR_draco_mesh_compression",
+   "KHR_materials_clearcoat",
+   "EXT_texture_webp"
+  ],
+  "extensionsRequired": [
+   "KHR_draco_mesh_compression",
+   "EXT_texture_webp"
+  ],
+  "toolNodes": [
+   "brick_in_hand",
+   "mortar_on_trowel",
+   "trowel",
+   "brick_placed",
+   "CTX_brick_0",
+   "CTX_brick_1",
+   "CTX_brick_2",
+   "CTX_mortar_in_pan",
+   "CTX_mortar_pan"
+  ]
+ },
+ "worker_plaster.glb": {
+  "sizeMB": 0.99,
+  "triangles": 23458,
+  "joints": [
+   55
+  ],
+  "morphTargets": [
+   "blink",
+   "smile",
+   "brow_raise",
+   "concentrate"
+  ],
+  "animations": [
+   {
+    "name": "apply_plaster",
+    "seconds": 3,
+    "channels": 167,
+    "morphChannels": 1
+   }
+  ],
+  "images": [
+   "worker_plaster_skin_normal:image/webp",
+   "worker_plaster_skin_albedo:image/webp",
+   "worker_plaster_skin_rough:image/webp",
+   "worker_plaster_hair_rgba:image/webp",
+   "eyes_eye_albedo:image/webp",
+   "worker_plaster_outfit_normal:image/webp",
+   "worker_plaster_outfit_albedo:image/webp",
+   "worker_plaster_outfit_rough:image/webp"
+  ],
+  "extensionsUsed": [
+   "KHR_draco_mesh_compression",
+   "KHR_materials_clearcoat",
+   "EXT_texture_webp"
+  ],
+  "extensionsRequired": [
+   "KHR_draco_mesh_compression",
+   "EXT_texture_webp"
+  ],
+  "toolNodes": [
+   "plaster_on_hawk",
+   "hawk",
+   "plaster_on_trowel",
+   "plaster_trowel"
+  ]
+ },
+ "worker_shutter.glb": {
+  "sizeMB": 1.02,
+  "triangles": 23979,
+  "joints": [
+   55
+  ],
+  "morphTargets": [
+   "blink",
+   "smile",
+   "brow_raise",
+   "concentrate"
+  ],
+  "animations": [
+   {
+    "name": "place_panel",
+    "seconds": 4,
+    "channels": 166,
+    "morphChannels": 1
+   }
+  ],
+  "images": [
+   "worker_shutter_skin_normal:image/webp",
+   "worker_shutter_skin_albedo:image/webp",
+   "worker_shutter_skin_rough:image/webp",
+   "worker_shutter_hair_rgba:image/webp",
+   "worker_shutter_plywood_panel_albedo:image/webp",
+   "eyes_eye_albedo:image/webp",
+   "worker_shutter_outfit_normal:image/webp",
+   "worker_shutter_outfit_albedo:image/webp",
+   "worker_shutter_outfit_rough:image/webp"
+  ],
+  "extensionsUsed": [
+   "KHR_draco_mesh_compression",
+   "KHR_materials_clearcoat",
+   "EXT_texture_webp"
+  ],
+  "extensionsRequired": [
+   "KHR_draco_mesh_compression",
+   "EXT_texture_webp"
+  ],
+  "toolNodes": [
+   "plywood_panel"
+  ]
+ }
+}

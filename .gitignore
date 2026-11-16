@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+# review captures and Blender working files (regenerable, large)
+docs/frames/
+tools/humans/_work/
+*.blend1
