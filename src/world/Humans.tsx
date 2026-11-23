@@ -18,16 +18,20 @@ type Cast = {
 };
 const loop = (name: string, speed = 1, offset = 0) => (t: number) => ({ name, time: (t * speed + offset) });
 
+/**
+ * Scene 2: everyone at work. Scene 3: the conventional crew leaves at the cuts (never mid-shot) as the new system
+ * takes over; the builder stays. Loops run on real film time; the builder's reaction runs on story time.
+ */
+const inS3 = (until: number) => (t: number) => film.scene === 2 || (film.scene === 3 && film.story < until);
 export const CAST: Record<string, Cast> = {
   builder: {
     file: '/models/humans/builder.glb', pos: [11.2, 0, 3.4], ry: -2.72,   // faces the house front
-    clip: (t) => (t >= 50 ? { name: 'step_back_tablet', time: Math.min(t - 50, 4.2) } : { name: 'idle_inspect', time: t }),
-    visible: (t) => t > 18.5,
+    clip: () => (film.scene === 3 && film.story >= 50 ? { name: 'step_back_tablet', time: Math.min(film.story - 50, 4.2) } : { name: 'idle_inspect', time: film.t + 1.3 }),
+    visible: () => film.scene !== 1,
   },
-  shutter: { file: '/models/humans/worker_shutter.glb', pos: [-4.0, 0, 0.66], ry: Math.PI, clip: loop('place_panel', 1, 0.4), visible: (t) => t > 18.5 && t < 38.2 },
-  mason: { file: '/models/humans/worker_mason.glb', pos: [2.3, 0, 0.78], ry: Math.PI, clip: loop('lay_brick', 1, 1.1), visible: (t) => t > 18.5 && t < 46.0 },
-  plaster: { file: '/models/humans/worker_plaster.glb', pos: [5.9, 0, 0.74], ry: Math.PI, clip: loop('apply_plaster', 1, 0.2), visible: (t) => t > 18.5 && t < 46.8 },
-  helper: { file: '/models/humans/worker_helper.glb', pos: [-5.1, 0, -0.95], ry: Math.PI / 2, clip: loop('idle', 1, 2), visible: (t) => t > 18.5 },
+  shutter: { file: '/models/humans/worker_shutter.glb', pos: [-4.0, 0, 0.66], ry: Math.PI, clip: loop('place_panel', 1, 0.4), visible: inS3(38.3) },
+  mason: { file: '/models/humans/worker_mason.glb', pos: [2.3, 0, 0.78], ry: Math.PI, clip: loop('lay_brick', 1, 1.1), visible: inS3(45.0) },
+  plaster: { file: '/models/humans/worker_plaster.glb', pos: [5.9, 0, 0.74], ry: Math.PI, clip: loop('apply_plaster', 1, 0.2), visible: inS3(45.0) },
 };
 
 type Loaded = { root: THREE.Object3D; mixer: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction>; morphs: THREE.Mesh[]; cast: Cast; last?: string };
@@ -73,7 +77,7 @@ export function Humans() {
 
   useFrame(() => {
     const t = film.t;
-    group.visible = t > 18.5;
+    group.visible = film.scene !== 1;
     for (const L of loaded) {
       const vis = L.cast.visible(t);
       L.root.visible = vis;
@@ -94,7 +98,7 @@ export function Humans() {
       const ph = ((t + seed) % period) / period;
       const blink = ph < 0.035 ? Math.sin((ph / 0.035) * Math.PI) : 0;
       const isBuilder = L.cast === CAST.builder;
-      const reaction = isBuilder && t > 52.4 && t < 58.5;     // the 3/4 close-up: eyes must read open
+      const reaction = isBuilder && film.scene === 3 && film.story > 52.4 && film.story < 54.2;     // eyes read open during the reaction
       for (const m of L.morphs) {
         const i = m.morphTargetDictionary!['blink'];
         if (i !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[i] = reaction ? 0 : blink;
@@ -102,11 +106,11 @@ export function Humans() {
         const sm = m.morphTargetDictionary!['smile'];
         if (isBuilder && sm !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[sm] = Math.min(m.morphTargetInfluences[sm], 0.42);
         const br = m.morphTargetDictionary!['brow_raise'];
-        if (reaction && br !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[br] = 0.18 * span(t, 52.8, 53.6);
+        if (reaction && br !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[br] = 0.18 * span(film.story, 52.8, 53.6);
         // subtle restrained smile only in shot 12 (in case the clip has no morph keys)
         const s = m.morphTargetDictionary!['smile'];
         if (s !== undefined && m.morphTargetInfluences && L.cast === CAST.builder && !L.actions['step_back_tablet']?.getClip().tracks.some((tr) => tr.name.includes('morphTargetInfluences')))
-          m.morphTargetInfluences[s] = 0.55 * span(t, 52.6, 53.6);
+          m.morphTargetInfluences[s] = film.scene === 3 ? 0.55 * span(film.story, 52.6, 53.6) : 0;
       }
     }
   });

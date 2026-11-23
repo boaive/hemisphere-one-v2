@@ -1,19 +1,30 @@
 /**
- * The master film clock. Scroll is the single source of truth: scroll -> target time -> smoothed time t.
- * Everything in the world (camera, construction, characters, text) is a pure function of `film.t`,
- * so scrubbing backwards is exact and deterministic.
+ * The film clock. The homepage plays three separate, pre-rendered films; this clock drives the 3D world while
+ * those films are rendered offline (or previewed in dev).
+ *
+ * - `film.scene`  which film is being rendered (1, 2 or 3)
+ * - `film.t`      seconds into that film (real time: camera, people, machines)
+ * - `film.story`  construction time: a per-scene warp of `film.t` so every build event lands inside the shot
+ *                 that shows it (see `storyTime` in shots.ts). Everything in the world is a pure function of
+ *                 these values, so any frame can be rendered in any order.
  */
-export const FILM_DURATION = 58;
+export type SceneId = 1 | 2 | 3;
 
 export const film = {
-  t: 0,            // smoothed film time (s) used for rendering
-  target: 0,       // time the scroll position asks for
+  scene: 1 as SceneId,
+  t: 0,
+  story: 0,
+  target: 0,
   velocity: 0,
-  playing: false,  // guided playback
-  sound: false,
+  portrait: false,       // portrait framing (phone cut of each film)
   mobile: false,
   reducedMotion: false,
+  render: false,         // offline render: no smoothing, deterministic
   ready: false,
+  playing: false,
+  sound: false,
+  /** current sub-frame sample (offline accumulation): pixel jitter (px), lens aperture offset (m), sun disc offset */
+  sub: { jx: 0, jy: 0, ax: 0, ay: 0, sx: 0, sy: 0 },
 };
 
 type Listener = () => void;
@@ -21,10 +32,10 @@ const listeners = new Set<Listener>();
 export const onFilm = (fn: Listener) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 export const emitFilm = () => listeners.forEach((fn) => fn());
 
-/** critically-damped follow: silky both directions, no overshoot */
+/** dev preview only: critically-damped follow toward `target` (offline renders set `t` directly) */
 export function stepClock(dt: number) {
-  const k = film.reducedMotion ? 60 : 7.5;
-  const a = 1 - Math.exp(-k * Math.min(dt, 0.1));
+  if (film.render) return;
+  const a = 1 - Math.exp(-9 * Math.min(dt, 0.1));
   const prev = film.t;
   film.t += (film.target - film.t) * a;
   if (Math.abs(film.target - film.t) < 1e-4) film.t = film.target;
@@ -46,4 +57,13 @@ export function stagger(t: number, a: number, b: number, i: number, n: number, d
   const u = span(t, a, b);
   const start = n <= 1 ? 0 : (i / (n - 1)) * (1 - dur);
   return clamp01((u - start) / dur);
+}
+/** piecewise-linear map through [x, y] pairs (x ascending); used for time warps */
+export function pw(x: number, pts: [number, number][]) {
+  if (x <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    const [x1, y1] = pts[i];
+    if (x <= x1) { const [x0, y0] = pts[i - 1]; return x1 === x0 ? y1 : y0 + ((x - x0) / (x1 - x0)) * (y1 - y0); }
+  }
+  return pts[pts.length - 1][1];
 }

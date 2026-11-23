@@ -6,3 +6,9 @@ dist/
 docs/frames/
 tools/humans/_work/
 *.blend1
+
+# offline film renders (frames are regenerable)
+renders/
+
+# render-only source assets (large; used to render the films, never shipped)
+render-assets/

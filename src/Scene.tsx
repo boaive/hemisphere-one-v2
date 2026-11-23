@@ -1,50 +1,56 @@
-import { useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { CameraRig } from './film/CameraRig';
 import { Atmosphere } from './world/Atmosphere';
 import { Landscape } from './world/Landscape';
 import { Tower } from './world/Tower';
 import { Precast } from './world/Precast';
-import { Factory } from './world/Factory';
+import { DataCenter } from './world/campus/DataCenter';
+import { Campus } from './world/campus/Campus';
+import { Township } from './world/campus/Township';
 import { Site } from './world/Site';
 import { Humans } from './world/Humans';
 import { Network } from './world/Network';
 import { Post } from './fx/Post';
 import { film } from './film/clock';
-import { updateSound } from './audio/sfx';
+import { SCAN } from './world/materials';
+import { PRECAST, DATACENTER } from './film/shots';
 
-/** compile every shader once (everything visible for one frame) so nothing hitches mid-film */
-function Warmup({ onReady }: { onReady: () => void }) {
-  const { gl, scene, camera } = useThree();
-  const n = useRef(0);
+/**
+ * Scene 1 data ripples: each flagship project sends a thin wavefront across the district every few seconds while it
+ * assembles. Deterministic in film time (ripple radius = age x speed).
+ */
+const SOURCES: [number, number, number][] = [[0, 0, 0.0], [PRECAST.x, PRECAST.z, 1.7], [DATACENTER.x, DATACENTER.z, 3.3]];
+const PERIOD = 5.0, SPEED = 62;
+function DistrictFx() {
   useFrame(() => {
-    n.current++;
-    if (n.current === 2) {
-      const hidden: { visible: boolean }[] = [];
-      scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
-      gl.compile(scene, camera);
-      hidden.forEach((o) => (o.visible = false));
-    }
-    if (n.current === 4) onReady();
-    updateSound(film.t, film.sound);
+    const on = film.scene === 1;
+    SCAN.uScanStrength.value = on ? 1 : 0;
+    const t = film.t;
+    SOURCES.forEach(([x, z, o], i) => {
+      const age = t - o < 0 ? -1 : (t - o) % PERIOD;
+      SCAN.uRip.value[i].set(x, 0, z, on && age >= 0 ? age * SPEED : -1);
+    });
+    SCAN.uRip.value[3].w = -1;
   });
   return null;
 }
 
-export function Scene({ mobile, quality, onReady }: { mobile: boolean; quality: number; onReady: () => void }) {
+export function Scene({ draft = false }: { draft?: boolean }) {
   return (
     <>
       <CameraRig />
-      <Atmosphere mobile={mobile} />
-      <Landscape mobile={mobile} />
+      <Atmosphere />
+      <Landscape />
       <Tower />
       <Precast />
-      <Factory />
+      <DataCenter />
+      <Campus />
+      <Township />
       <Site />
       <Humans />
       <Network />
-      <Post mobile={mobile} quality={quality} />
-      <Warmup onReady={onReady} />
+      <DistrictFx />
+      <Post draft={draft} />
     </>
   );
 }

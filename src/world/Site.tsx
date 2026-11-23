@@ -34,7 +34,7 @@ function travel(a: THREE.Matrix4, b: THREE.Matrix4, u: number, lift: number, out
 function jetPanelGeometry(w: number, h: number) {
   const t = 0.05;
   const parts = [place(rbox(w, h, 0.012, 0.004, 1), 0, h / 2, 0.006)];
-  // perimeter ribs + 150 mm grid ribs on the back (the green JET signature)
+  // perimeter ribs + 150 mm grid ribs on the back (the JET signature)
   parts.push(place(rbox(w, 0.012, t, 0.003, 1), 0, 0.006, t / 2), place(rbox(w, 0.012, t, 0.003, 1), 0, h - 0.006, t / 2));
   parts.push(place(rbox(0.012, h, t, 0.003, 1), -w / 2 + 0.006, h / 2, t / 2), place(rbox(0.012, h, t, 0.003, 1), w / 2 - 0.006, h / 2, t / 2));
   for (let y = 0.15; y < h - 0.05; y += 0.15) parts.push(place(rbox(w - 0.02, 0.006, t * 0.7, 0.002, 1), 0, y, t * 0.35));
@@ -174,7 +174,7 @@ export function Site() {
           // the course being laid in shot 7: these bricks appear one by one (28.6 -> 32.6 s)
           const laying = bi === 0 && row === 18;
           const tone = 0.62 + r() * 0.18;
-          bricks.push({ m: mat(x + (r() - 0.5) * 0.004, y, 0.055 + (r() - 0.5) * 0.004, 0, (r() - 0.5) * 0.012, 0), c: new THREE.Color().setRGB(tone, tone * 0.47 + r() * 0.04, tone * 0.33), bay: bi, t: laying ? 28.6 + ((x - a) / (b - a)) * 4 : -1 });
+          bricks.push({ m: mat(x + (r() - 0.5) * 0.004, y, 0.055 + (r() - 0.5) * 0.004, 0, (r() - 0.5) * 0.012, 0), c: new THREE.Color().setRGB(tone * 0.92, tone * 0.4 + r() * 0.035, tone * 0.27), bay: bi, t: laying ? 28.6 + ((x - a) / (b - a)) * 4 : -1 });
         }
       }
     });
@@ -214,7 +214,7 @@ export function Site() {
       geo.computeVertexNormals();
       const o = mesh(geo, m); o.position.set(x, 0, z); add(o); return o;
     };
-    heap(-6.0, 2.4, 1.5, 0.95, M.sand, 3);
+    heap(-7.6, 4.4, 1.4, 0.85, M.sand, 3);
     heap(-10.2, 5.6, 1.4, 0.9, M.aggregate, 4);
     add(instanced(new THREE.CylinderGeometry(0.29, 0.29, 0.88, 28), M.drum, [mat(12.6, 0.44, -1.6), mat(12.7, 0.44, -2.3), mat(13.3, 0.44, -1.9)]));
     const pallet = merge(Array.from({ length: 5 }, (_, k) => place(merge(Array.from({ length: 6 }, (_, i) => place(rbox(0.23, 0.075, 0.11, 0.005, 1), -0.3 + (i % 2) * 0.24 + (k % 2 ? 0.12 : 0), 0.0375 + k * 0.077, -0.25 + Math.floor(i / 2) * 0.12))), 0, 0.12, 0)));
@@ -225,19 +225,27 @@ export function Site() {
     for (let k = 0; k < 5; k++) for (const dx of [9.6, 10.6]) bam.push(rod(new THREE.Vector3(dx, 1.2 + k * 1.45, 0.3), new THREE.Vector3(dx, 1.25 + k * 1.45, -15.3), 0.036, 7));
     add(mesh(merge(bam), M.bamboo));
 
-    // ---------------- H1-561 ECO (provisional) - revealed by a scanning clip plane (local y) at 41.4 s
+    // ---------------- H1-561 MINI - revealed by a scanning clip plane (local y) at story 41.3 s
     const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
     const h1 = buildH1([clipPlane]);
-    h1.group.position.set(-7.2, 0, -4.0); h1.group.rotation.y = Math.PI * 0.62;
+    h1.group.position.set(-7.4, 0, -4.2); h1.group.rotation.y = -0.3;
     add(h1.group);
-    const trace = mesh(new THREE.TorusGeometry(2.05, 0.012, 6, 64).rotateX(Math.PI / 2).scale(1, 1, 0.55), new THREE.MeshBasicMaterial({ color: '#47C13C', toneMapped: false }), false);
-    trace.position.copy(h1.group.position); add(trace);
+    const trace = mesh(new THREE.TorusGeometry(1.95, 0.012, 6, 72).rotateX(Math.PI / 2).scale(1, 1, 0.62), new THREE.MeshBasicMaterial({ color: '#FCD301', toneMapped: false }), false);
+    trace.position.copy(h1.group.position); trace.rotation.y = -0.3; add(trace);
+    // a neat pallet of premix beside the machine (brand colours only: approved packaging artwork is pending)
+    const premixMat = M.premixBag;
+    const premix = instanced(rbox(0.42, 0.13, 0.64, 0.05), premixMat, Array.from({ length: 12 }, (_, i) => mat(-0.44 + (i % 3) * 0.44, 0.19 + Math.floor(i / 3) * 0.135, 0, 0, (i % 2) * 0.03, 0)), { shadow: true });
+    const premixPallet = new THREE.Group(); premixPallet.add(premix, mesh(rbox(1.3, 0.12, 0.8, 0.01), M.timber));
+    premixPallet.children[1].position.y = 0.06;
+    premixPallet.position.set(-9.6, 0, -2.9); premixPallet.rotation.y = -0.3;
+    add(premixPallet);
     // delivery hose: machine outlet -> top of the extension column form
-    const hoseCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(-5.8, 1.05, -3.1), new THREE.Vector3(-5.6, 0.15, -2.1), new THREE.Vector3(-5.2, 0.12, -0.9), new THREE.Vector3(-4.5, 1.8, -0.6), new THREE.Vector3(-4.2, 3.55, -0.23)]);
+    const out = h1.outlet.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), h1.group.rotation.y).add(h1.group.position);
+    const hoseCurve = new THREE.CatmullRomCurve3([out, out.clone().add(new THREE.Vector3(0.35, -0.45, 0.1)), new THREE.Vector3(-5.4, 0.1, -1.9), new THREE.Vector3(-4.9, 0.12, -0.8), new THREE.Vector3(-4.5, 1.8, -0.6), new THREE.Vector3(-4.2, 3.55, -0.23)]);
     const hose = mesh(new THREE.TubeGeometry(hoseCurve, 80, 0.055, 10), M.tyre); add(hose);
 
     // ---------------- neighbours, street, power lines, palms (keeps the skyline visible behind the site)
-    const nb = [[-14, -6, 8, 14, 6.4, 0], [16.5, -6, 7, 14, 9.6, 1], [-14, 22, 10, 9, 6.4, 2], [6, 24, 14, 8, 9.6, 3], [22, 22, 8, 9, 6.4, 1]];
+    const nb = [[-14, -6, 8, 14, 6.4, 0], [16.5, -6, 7, 14, 9.6, 1], [-14, 22, 10, 9, 6.4, 2], [22, 22, 8, 9, 6.4, 1]];
     nb.forEach(([x, z, w, d, h, ci]) => {
       const o = mesh(new THREE.BoxGeometry(w, h, d), M.house[ci]); o.position.set(x, h / 2, z); add(o);
       const rf = mesh(rbox(w + 0.3, 0.16, d + 0.3, 0.02), M.roof); rf.position.set(x, h + 0.08, z); add(rf);
@@ -261,16 +269,17 @@ export function Site() {
       add(mesh(palm, M.frond)).position.set(x, h, z);
     });
 
-    return { root, swapMeshes, bricks, brickMesh, plaster, wet, mono, monoWin, h1, clipPlane, trace, hose, bays, tops };
+    return { root, swapMeshes, bricks, brickMesh, plaster, wet, mono, monoWin, h1, clipPlane, trace, hose, bays, tops, premixPallet };
   }, [M]);
 
   const tmp = useMemo(() => ({ m: new THREE.Matrix4(), z: new THREE.Matrix4().makeScale(0, 0, 0), w: new THREE.Vector3() }), []);
 
   useFrame(() => {
-    const t = film.t, b = B;
-    const near = t > 18.5;
-    b.root.visible = near || t < 1;     // the site lives far away; skip it until the descent
-    if (!near) return;
+    const b = B;
+    const live = film.scene !== 1;
+    b.root.visible = live;              // the everyday site exists in Scenes 2-3 only
+    if (!live) return;
+    const t = film.story;               // construction time (see storyTime in shots.ts)
     // ---- formwork swaps (deterministic in t)
     for (const { im, list } of b.swapMeshes) {
       list.forEach((s, i) => {
@@ -313,22 +322,26 @@ export function Site() {
     const rv = smooth(span(t, 41.3, 42.9));
     b.trace.visible = t > 41.2 && t < 43.1;
     // clip plane works in world space: the site group is at y = 0, so local y == world y
-    b.clipPlane.constant = rv * 3.0;
-    b.trace.position.y = rv * 3.0;
-    b.trace.scale.setScalar(1);
-    b.h1.mixer.rotation.x = t > 42.5 ? (t - 42.5) * 9 : 0;
-    b.h1.mix.position.y = 0.66 + 1.45 - 0.12 + Math.sin(t * 7) * 0.01;
+    b.clipPlane.constant = rv * 1.9;
+    b.trace.position.y = rv * 1.9;
+    b.premixPallet.visible = film.scene === 3 && t > 41.6;
+    b.h1.mixer.rotation.z = t > 42.5 ? film.t * 6 : 0;          // mixing shafts turn at real speed
+    b.h1.mix.position.y = 1.45 + Math.sin(film.t * 7) * 0.008;
     b.hose.visible = t > 43.0;
-    b.hose.scale.setScalar(1 + (t > 43.2 ? Math.max(0, Math.sin(t * 6)) * 0.04 : 0));
+    b.hose.scale.setScalar(1 + (t > 43.2 ? Math.max(0, Math.sin(film.t * 6)) * 0.02 : 0));
     // ---- the transformation wave (shared shader uniforms, world space)
     let R = -10, str = 0;
     if (t > 37 && t < 41.5) { R = (t - 37.0) * 11; str = smooth(span(t, 37.0, 37.25)) * (1 - smooth(span(t, 40.2, 41.5))); WAVE.uWaveOrigin.value.copy(WAVE_O); }
     else if (t > 45.8 && t < 48.6) { R = (t - 45.8) * 5.5; str = smooth(span(t, 45.8, 46.0)) * (1 - smooth(span(t, 47.6, 48.6))); WAVE.uWaveOrigin.value.set(...S(4.5, 1.4, 0.3)); }
     WAVE.uWaveR.value = R; WAVE.uWaveStrength.value = str;
     // ---- tracked labels
-    anchor('jet', ...S(EXT[0] - 0.4, 2.9, EXT[1]));
-    anchor('h1', ...S(-7.2, 2.6, -4.0));
-    anchor('builder', ...S(11.2, 1.7, 3.4));
+    anchor('jet', ...S(EXT[0] - 0.2, 2.6, EXT[1] + 0.2));
+    anchor('plywood', ...S(EXT[0] + 0.1, 2.0, EXT[1] + 0.3));
+    anchor('h1', ...S(-7.2, 2.0, -4.1));
+    anchor('premix', ...S(-9.6, 1.0, -2.9));
+    anchor('brick', ...S(2.3, 1.6, 0.1));
+    anchor('wall', ...S(3.0, 2.0, 0.15));
+    anchor('builder', ...S(11.2, 1.85, 3.4));
   });
 
   return <primitive object={B.root} />;

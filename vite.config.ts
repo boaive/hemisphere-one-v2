@@ -3,22 +3,25 @@ import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** dev-only: POST /__capture?name=x with a data-URL body -> docs/frames/x.jpg (frame review tool) */
-function captureFrames(): Plugin {
+/**
+ * dev-only: receives frames from the offline film renderer (src/render/RenderApp.tsx).
+ * POST /__frame?dir=<name>&i=<n>  (PNG body)  ->  renders/<name>/f_00000.png
+ */
+function frameSink(): Plugin {
   return {
-    name: 'capture-frames',
+    name: 'frame-sink',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/__capture', (req, res) => {
+      server.middlewares.use('/__frame', (req, res) => {
         const url = new URL(req.url ?? '', 'http://x');
-        const name = (url.searchParams.get('name') ?? 'frame').replace(/[^a-z0-9_.-]/gi, '_');
-        let body = '';
-        req.on('data', (c) => (body += c));
+        const dir = (url.searchParams.get('dir') ?? 'frames').replace(/[^a-z0-9_.-]/gi, '_');
+        const i = Number(url.searchParams.get('i') ?? 0);
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
         req.on('end', () => {
-          const b64 = body.replace(/^data:image\/\w+;base64,/, '');
-          const dir = path.resolve(__dirname, 'docs/frames');
-          fs.mkdirSync(dir, { recursive: true });
-          fs.writeFileSync(path.join(dir, `${name}.jpg`), Buffer.from(b64, 'base64'));
+          const out = path.resolve(__dirname, 'renders', dir);
+          fs.mkdirSync(out, { recursive: true });
+          fs.writeFileSync(path.join(out, `f_${String(i).padStart(5, '0')}.png`), Buffer.concat(chunks));
           res.end('ok');
         });
       });
@@ -27,13 +30,10 @@ function captureFrames(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), captureFrames()],
-  server: { port: 5200 },
+  plugins: [react(), frameSink()],
+  server: { port: 5200, watch: { ignored: ['**/renders/**', '**/tools/**'] } },
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 1600,
-    rollupOptions: {
-      output: { manualChunks: { three: ['three'], r3f: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', 'postprocessing'] } },
-    },
   },
 });

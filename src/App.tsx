@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home } from './Home';
+import { Home } from './site/home/Home';
 import { UnderConstruction } from './site/UnderConstruction';
 import { onRoute } from './site/sitemap';
 

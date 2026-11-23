@@ -44,7 +44,7 @@ export function Factory() {
     slab.position.set(XM, 0.15, (F.z0 + F.z1) / 2); g.add(slab);
     // frames (rise in sequence)
     const fgeo = frameGeometry();
-    const frames: { z: number; t0: number }[] = Array.from({ length: NB + 1 }, (_, k) => ({ z: F.z0 - k * F.bay, t0: 10.6 + k * 0.11 }));
+    const frames: { z: number; t0: number }[] = Array.from({ length: NB + 1 }, (_, k) => ({ z: F.z0 - k * F.bay, t0: 0.2 + k * 0.12 }));
     const frameMesh = instanced(fgeo, M.steelPrimer, frames.map(() => new THREE.Matrix4()));
     g.add(frameMesh);
     // secondaries: purlins along the roof, girts on the walls, end-bay X-bracing
@@ -75,14 +75,14 @@ export function Factory() {
     let k = 0;
     for (let z = F.z0 - PW / 2; z > F.z1; z -= PW, k++) {
       const jit = r() * 0.12;
-      walls.push({ m: mat(F.x0 - 0.52, (F.eave + 0.3) / 2, z, 0, Math.PI / 2, 0), t0: 13.4 + (k / 150) * 3.4 + jit, dur: 0.3 + r() * 0.14, out: new THREE.Vector3(-2.2, 1.6, 0) });
-      walls.push({ m: mat(F.x1 + 0.52, (F.eave + 0.3) / 2, z, 0, -Math.PI / 2, 0), t0: 14.0 + (k / 150) * 3.4 + jit, dur: 0.3 + r() * 0.14, out: new THREE.Vector3(2.2, 1.6, 0) });
+      walls.push({ m: mat(F.x0 - 0.52, (F.eave + 0.3) / 2, z, 0, Math.PI / 2, 0), t0: 3.6 + (k / 150) * 8.8 + jit, dur: 0.34 + r() * 0.12, out: new THREE.Vector3(-2.4, 1.8, 0) });
+      walls.push({ m: mat(F.x1 + 0.52, (F.eave + 0.3) / 2, z, 0, -Math.PI / 2, 0), t0: 4.4 + (k / 150) * 9.6 + jit, dur: 0.34 + r() * 0.12, out: new THREE.Vector3(2.4, 1.8, 0) });
     }
     // gables: panels fill up to the rafter line; roller-door openings on the near gable
     for (let x = F.x0 + PW / 2; x < F.x1; x += PW) {
       const hh = F.eave + (SPAN / 2 - Math.abs(x - XM)) * Math.tan(SLOPE);
       const door = Math.abs(x - (XM - 9)) < 3 || Math.abs(x - (XM + 9)) < 3;
-      for (const [z, dir, t0] of [[F.z0 + 0.52, 1, 15.0], [F.z1 - 0.52, -1, 15.6]] as const) {
+      for (const [z, dir, t0] of [[F.z0 + 0.52, 1, 7.6], [F.z1 - 0.52, -1, 12.4]] as const) {
         const y0 = door && dir === 1 ? 6.2 : 0;
         const h = hh - y0;
         walls.push({ m: mat(x, y0 + h / 2, z, 0, 0, 0, 1, h / (F.eave + 0.3), 1), t0: t0 + ((x - F.x0) / SPAN) * 1.8 + r() * 0.1, dur: 0.32, out: new THREE.Vector3(0, 1.6, dir * 2.2) });
@@ -96,7 +96,7 @@ export function Factory() {
     for (let z = F.z0 - PW / 2; z > F.z1; z -= PW, k++) {
       for (const side of [-1, 1]) {
         const cx = XM + side * (SPAN / 4), cy = (F.eave + F.ridge) / 2 + 0.72;
-        roofs.push({ m: mat(cx, cy, z, 0, 0, side * SLOPE), t0: 15.3 + (k / 150) * 2.7 + (side > 0 ? 0.25 : 0) + r() * 0.08, dur: 0.34, out: new THREE.Vector3(0, 2.5, 0) });
+        roofs.push({ m: mat(cx, cy, z, 0, 0, side * SLOPE), t0: 8.8 + (k / 150) * 7.4 + (side > 0 ? 0.3 : 0) + r() * 0.08, dur: 0.38, out: new THREE.Vector3(0, 2.8, 0) });
       }
     }
     const roofMesh = instanced(roofGeo, M.panelRoof, roofs.map((p) => p.m));
@@ -131,9 +131,7 @@ export function Factory() {
   const tmp = useMemo(() => ({ m: new THREE.Matrix4(), p: new THREE.Vector3(), q: new THREE.Quaternion(), s: new THREE.Vector3(), z: new THREE.Matrix4().makeScale(0, 0, 0) }), []);
 
   useFrame(() => {
-    const t = film.t, b = built;
-    if (t > 30 && t < 53) { b.g.visible = false; return; }
-    b.g.visible = true;
+    const t = film.scene === 1 ? film.t : 99, b = built;   // complete in Scenes 2-3
     // frames rise from their base plates (columns + rafters as one erected portal)
     b.frames.forEach((f, i) => {
       const a = seat(span(t, f.t0, f.t0 + 0.45));
@@ -141,12 +139,12 @@ export function Factory() {
       b.frameMesh.setMatrixAt(i, a <= 0 ? tmp.z : tmp.m);
     });
     b.frameMesh.instanceMatrix.needsUpdate = true;
-    const sec = smooth(span(t, 12.6, 13.9));
+    const sec = smooth(span(t, 2.2, 3.6));
     b.secMesh.visible = sec > 0.01;
     b.secMesh.scale.set(1, 1, Math.max(0.01, sec));
     // secondaries run out from the near gable: scale about z0 (instances sit at the mid-point)
     b.secMesh.position.z = F.z0 * (1 - sec);
-    b.braceMesh.visible = t > 13.0;
+    b.braceMesh.visible = t > 2.6;
     // panels: delivered outside + above, then seated; each with its own duration
     const animate = (inst: THREE.InstancedMesh, list: P[]) => {
       let front = -1;
@@ -165,15 +163,17 @@ export function Factory() {
     };
     const fw = animate(b.wallMesh, b.walls);
     animate(b.roofMesh, b.roofs);
-    b.doors.visible = t > 16.8;
-    b.flash.visible = t > 18.0;
-    b.flash.scale.set(1, 1, Math.max(0.01, smooth(span(t, 18.0, 18.6))));
+    b.doors.visible = t > 15.6;
+    b.flash.visible = t > 16.4;
+    b.flash.scale.set(1, 1, Math.max(0.01, smooth(span(t, 16.4, 17.2))));
     // the mobile crane follows the west-wall install front
-    const fz = fw >= 0 ? new THREE.Vector3().setFromMatrixPosition(b.walls[fw].m).z : (t < 13.4 ? F.z0 : F.z1 + 4);
-    b.mc.position.z = t < 13.4 ? F.z0 + 2 : fz + 4;
+    const fz = fw >= 0 ? new THREE.Vector3().setFromMatrixPosition(b.walls[fw].m).z : (t < 3.6 ? F.z0 : F.z1 + 4);
+    b.mc.position.z = t < 3.6 ? F.z0 + 2 : fz + 4;
     b.mc.position.x = F.x0 - 16;
-    b.mc.visible = !(t > 14.6 && t < 16.4);   // out of the low tracking shot   // deterministic: scrubbing back puts it back
-    anchor('factory', F.x0 - 0.5, F.eave + 1.5, F.z0 - 12);
+    // label pin follows the roof install front (what the panelized shot is watching)
+    const rf = b.roofs.find((p) => t < p.t0 + p.dur);
+    const rz = rf ? new THREE.Vector3().setFromMatrixPosition(rf.m).z : F.z1 + 20;
+    anchor('factory', F.x0 + 6, F.eave + 2.2, Math.min(F.z0 - 20, rz + 6));
   });
 
   return <primitive object={built.g} />;
