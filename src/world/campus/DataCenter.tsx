@@ -5,6 +5,7 @@ import { film, span, seat, smooth, clamp01 } from '../../film/clock';
 import { DATACENTER as DC } from '../../film/shots';
 import { rbox, merge, place, instanced, mesh, mat, rand, iSection } from '../geo';
 import { anchor } from '../anchors';
+import { ribbedPanel } from '../textures';
 import { mats } from '../materials';
 
 /**
@@ -18,7 +19,7 @@ const BAY = 7.5;
 
 type Panel = { m: THREE.Matrix4; t0: number; dur: number; out: THREE.Vector3; upper: boolean; hero?: boolean };
 /** the one panel set on camera (panelized shot 10.8-16.0 s): south wall, lower course, this column */
-const HERO_COL = 35, HERO_T0 = 11.2, HERO_DUR = 4.2, BOOM = 26;
+const HERO_COL = 35, HERO_T0 = 9.3, HERO_DUR = 3.7, BOOM = 26;
 
 export function DataCenter() {
   const M = mats();
@@ -26,8 +27,10 @@ export function DataCenter() {
     const g = new THREE.Group(); g.position.set(DC.x, 0, DC.z);
     const r = rand(73);
     const steel = new THREE.MeshStandardMaterial({ color: '#4d5560', metalness: 0.6, roughness: 0.45 });
-    const lowMat = new THREE.MeshStandardMaterial({ color: '#2f343a', metalness: 0.35, roughness: 0.42 });
-    const upMat = new THREE.MeshStandardMaterial({ color: '#c9ccce', metalness: 0.3, roughness: 0.4 });
+    // insulated metal panels with a trapezoidal rib (4 ribs per 1.2 m panel), read by the low sun
+    const rib = ribbedPanel();
+    const lowMat = new THREE.MeshStandardMaterial({ color: '#30353b', metalness: 0.45, roughness: 0.4, normalMap: rib.normalMap, normalScale: new THREE.Vector2(1.1, 1.1), roughnessMap: rib.roughnessMap });
+    const upMat = new THREE.MeshStandardMaterial({ color: '#cfd2d4', metalness: 0.35, roughness: 0.38, normalMap: rib.normalMap, normalScale: new THREE.Vector2(1.1, 1.1), roughnessMap: rib.roughnessMap });
     const louvre = new THREE.MeshStandardMaterial({ color: '#3a4047', metalness: 0.5, roughness: 0.5 });
     // slab
     const slab = mesh(rbox(W + 4, 0.4, D + 4, 0.05), M.concreteReal); slab.position.y = 0.2; g.add(slab);
@@ -64,10 +67,19 @@ export function DataCenter() {
       }
     };
     const near = (s: number, list: number[], w: number) => list.some((c) => Math.abs(s - c) < w);
-    run(W, (s, _u, h, y) => mat(s, y + 0.4, D / 2 + 0.16, 0, 0, 0, 1, h / LOW, 1), new THREE.Vector3(0, 3, 6), (s) => near(s, docks, 2.0) || near(s, doors, 0.7), 6.4, 10.2, HERO_COL);
-    run(D, (s, _u, h, y) => mat(W / 2 + 0.16, y + 0.4, -s, 0, Math.PI / 2, 0, 1, h / LOW, 1), new THREE.Vector3(6, 3, 0), () => false, 2.6, 5.0);
-    run(W, (s, _u, h, y) => mat(-s, y + 0.4, -D / 2 - 0.16, 0, Math.PI, 0, 1, h / LOW, 1), new THREE.Vector3(0, 3, -6), () => false, 3.6, 7.6);
-    run(D, (s, _u, h, y) => mat(-W / 2 - 0.16, y + 0.4, s, 0, -Math.PI / 2, 0, 1, h / LOW, 1), new THREE.Vector3(-6, 3, 0), () => false, 5.0, 9.0);
+    run(W, (s, _u, h, y) => mat(s, y + 0.4, D / 2 + 0.16, 0, 0, 0, 1, h / LOW, 1), new THREE.Vector3(0, 3, 6), (s) => near(s, docks, 2.0) || near(s, doors, 0.7), 5.2, 8.6, HERO_COL);
+    run(D, (s, _u, h, y) => mat(W / 2 + 0.16, y + 0.4, -s, 0, Math.PI / 2, 0, 1, h / LOW, 1), new THREE.Vector3(6, 3, 0), () => false, 2.0, 4.2);
+    run(W, (s, _u, h, y) => mat(-s, y + 0.4, -D / 2 - 0.16, 0, Math.PI, 0, 1, h / LOW, 1), new THREE.Vector3(0, 3, -6), () => false, 3.0, 6.4);
+    run(D, (s, _u, h, y) => mat(-W / 2 - 0.16, y + 0.4, s, 0, -Math.PI / 2, 0, 1, h / LOW, 1), new THREE.Vector3(-6, 3, 0), () => false, 4.2, 7.6);
+    // base trim between slab and panels, a mid band at the course joint, parapet coping, corner flashings
+    const trimM = new THREE.MeshStandardMaterial({ color: '#8d949a', metalness: 0.6, roughness: 0.35 });
+    const trims: THREE.BufferGeometry[] = [];
+    for (const y of [0.42, LOW + 0.4, H + 0.42]) {
+      const th = y > H ? 0.36 : 0.14, dp = y > H ? 0.52 : 0.3;
+      trims.push(place(rbox(W + 0.8, th, dp, 0.01), 0, y, D / 2 + 0.2), place(rbox(W + 0.8, th, dp, 0.01), 0, y, -D / 2 - 0.2), place(rbox(dp, th, D + 0.8, 0.01), W / 2 + 0.2, y, 0), place(rbox(dp, th, D + 0.8, 0.01), -W / 2 - 0.2, y, 0));
+    }
+    for (const [cx, cz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) trims.push(place(rbox(0.4, H, 0.4, 0.01), cx * (W / 2 + 0.17), 0.4 + H / 2, cz * (D / 2 + 0.17)));
+    const trimMesh = mesh(merge(trims), trimM); g.add(trimMesh);
     const pGeo = merge([place(rbox(PW - 0.02, LOW, 0.2, 0.01, 1), 0, 0, 0), place(new THREE.BoxGeometry(0.03, LOW * 0.98, 0.21), PW / 2 - 0.01, 0, 0)]);
     const lower = panels.filter((p) => !p.upper), upper = panels.filter((p) => p.upper);
     const lowMesh = instanced(pGeo, lowMat, lower.map(() => new THREE.Matrix4()));
@@ -85,11 +97,20 @@ export function DataCenter() {
     doors.forEach((x) => dockG.push(place(rbox(1.2, 2.3, 0.1, 0.02), x, 0.4 + 1.15, D / 2 + 0.25)));
     const dockMesh = mesh(merge(dockG), new THREE.MeshStandardMaterial({ color: '#6c737a', metalness: 0.5, roughness: 0.45 })); g.add(dockMesh);
     const bollardMesh = instanced(new THREE.CylinderGeometry(0.11, 0.11, 1.0, 14), new THREE.MeshStandardMaterial({ color: '#fcd301', roughness: 0.4 }), bollards); g.add(bollardMesh);
-    // rooftop chillers (two rows) and a generator yard along the east side
-    const chiller = merge([place(rbox(6, 2.2, 2.4, 0.05), 0, 1.1, 0), ...[-2, 0, 2].map((x) => place(new THREE.CylinderGeometry(0.85, 0.85, 0.3, 24), x, 2.35, 0))]);
-    const chillers: THREE.Matrix4[] = [];
-    for (let i = 0; i < Math.floor((W - 22) / 9) + 1; i++) for (const z of [-7, 7]) chillers.push(mat(-W / 2 + 11 + i * 9, H, z));
-    const chillMesh = instanced(chiller, new THREE.MeshStandardMaterial({ color: '#d9dcde', metalness: 0.4, roughness: 0.45 }), chillers); g.add(chillMesh);
+    // rooftop plant: air-cooled units (slatted coil sides, fans flush in dark grilles) behind a louvred screen wall;
+    // and a generator yard along the east side
+    const plant = new THREE.Group();
+    const units: THREE.Matrix4[] = [];
+    for (let i = 0; i < 4; i++) for (const z of [-4.2, 4.2]) units.push(mat(-15 + i * 10, H + 0.1, z));
+    const unitM = new THREE.MeshStandardMaterial({ color: '#d4d7d9', metalness: 0.4, roughness: 0.45, normalMap: rib.normalMap, normalScale: new THREE.Vector2(0.8, 0.8) });
+    plant.add(instanced(merge([place(rbox(7.4, 1.9, 2.6, 0.03), 0, 0.95, 0), place(rbox(7.6, 0.12, 2.8, 0.02), 0, 1.96, 0)]), unitM, units));
+    const fanM = new THREE.MeshStandardMaterial({ color: '#23272b', metalness: 0.3, roughness: 0.6 });
+    plant.add(instanced(merge([-2.6, 0, 2.6].flatMap((x) => [place(new THREE.CylinderGeometry(0.9, 0.9, 0.04, 36), x, 2.03, 0), place(new THREE.TorusGeometry(0.9, 0.05, 6, 36).rotateX(Math.PI / 2), x, 2.05, 0)])), fanM, units, { shadow: false }));
+    const screenG: THREE.BufferGeometry[] = [];
+    const sw = 44, sd = 16, sh = 2.6;
+    screenG.push(place(rbox(sw, sh, 0.12, 0.01), -2, H + sh / 2, sd / 2), place(rbox(sw, sh, 0.12, 0.01), -2, H + sh / 2, -sd / 2), place(rbox(0.12, sh, sd, 0.01), -2 + sw / 2, H + sh / 2, 0), place(rbox(0.12, sh, sd, 0.01), -2 - sw / 2, H + sh / 2, 0));
+    plant.add(mesh(merge(screenG), new THREE.MeshStandardMaterial({ color: '#b9bec2', metalness: 0.45, roughness: 0.4, normalMap: rib.normalMap, normalScale: new THREE.Vector2(1, 1) })));
+    const chillMesh = plant; g.add(plant);
     const gens: THREE.Matrix4[] = [];
     for (let i = 0; i < 6; i++) gens.push(mat(W / 2 + 9, 1.5, -D / 2 + 6 + i * 7, 0, Math.PI / 2, 0));
     const genMesh = instanced(rbox(6.1, 2.6, 2.44, 0.04), new THREE.MeshStandardMaterial({ color: '#e4e2dc', metalness: 0.3, roughness: 0.5 }), gens); g.add(genMesh);
@@ -149,8 +170,8 @@ export function DataCenter() {
       inst.instanceMatrix.needsUpdate = true;
     };
     animate(b.lowMesh, b.lower); animate(b.upMesh, b.upper);
-    b.lv.visible = t > 7.6;
-    b.chillMesh.visible = t > 9.0;
+    b.lv.visible = t > 6.4;
+    b.chillMesh.visible = t > 7.6;
     // the hero lift: rack -> lift -> swing -> lower -> push onto the wall (eased phases, one move at a time)
     const a = (t - HERO_T0) / HERO_DUR;
     const P = tmp.w;

@@ -2,12 +2,19 @@ import { lazy, Suspense, useEffect, useRef } from 'react';
 import { MODERN, GAP } from '../content';
 import { Words, useReveal } from './Sections';
 
-const MaterialStudy = lazy(() => import('../three/MaterialStudy'));
-const AmbientField = lazy(() => import('../three/AmbientField'));
+const Playground = lazy(() => import('../three/Playground'));
+const KineticTiles = lazy(() => import('../three/KineticTiles'));
+
+/** a line of display type with its key words marked (the mark draws in when the line is revealed) */
+function Marked({ text, mark }: { text: string; mark: string }) {
+  const i = text.indexOf(mark);
+  if (i < 0) return <>{text}</>;
+  return <>{text.slice(0, i)}<mark className="hl">{mark}</mark>{text.slice(i + mark.length)}</>;
+}
 
 /**
- * After film 1: a regular page. What modern construction is and why it stands out, carried by one live
- * material study; then a quiet cue that leads straight into film 2. No numbering, no scroll-driven choreography:
+ * After film 1: a regular, light page. What modern construction is and why it stands out, beside a playful
+ * cluster of glossy forms that slip out of the pointer's way; then a quiet cue that leads straight into film 2. No numbering, no scroll-driven choreography:
  * elements simply arrive as they come into view.
  */
 export function Modern({ id }: { id: string }) {
@@ -15,9 +22,9 @@ export function Modern({ id }: { id: string }) {
   const cue = useReveal<HTMLDivElement>(0.6);
   const pts = useReveal<HTMLUListElement>(0.3);
   return (
-    <section ref={ref} id={id} className="modern" data-theme="dark">
+    <section ref={ref} id={id} className="modern" data-theme="light">
       <div className="modern__hero">
-        <div className="modern__stage"><Suspense fallback={null}><MaterialStudy /></Suspense></div>
+        <div className="modern__stage"><Suspense fallback={null}><Playground source={ref} /></Suspense></div>
         <div className="wrap modern__copy">
           <p className="kicker">{MODERN.kicker}</p>
           <h2 className="modern__title"><Words text={MODERN.title} /></h2>
@@ -38,7 +45,7 @@ export function Modern({ id }: { id: string }) {
 }
 
 /**
- * After film 2: why the gap persists, told as one continuous piece of prose over ambient motion. The next
+ * After film 2: why the gap persists, in five short staged lines over a kinetic tile wall that answers the pointer. The next
  * panel then rises from the bottom edge over it (CSS sticky stacking) while its words arrive one at a time,
  * and film 3 follows.
  */
@@ -79,13 +86,18 @@ export function Why({ id }: { id: string }) {
     return () => { window.removeEventListener('scroll', on); window.removeEventListener('resize', on); if (raf) cancelAnimationFrame(raf); };
   }, []);
 
+  const lines = useReveal<HTMLDivElement>(0.25);
   return (
     <div className="stack">
       <section ref={stick} id={id} className="why" data-theme="dark">
-        <div className="why__field"><Suspense fallback={null}><AmbientField /></Suspense></div>
+        <div className="why__field"><Suspense fallback={null}><KineticTiles source={stick} /></Suspense></div>
         <div className="wrap why__copy">
           <p className="kicker">{GAP.kicker}</p>
-          {GAP.paras.map((p, i) => <p key={i} className={`why__p ${i === 0 ? 'why__p--lead' : ''}`} style={{ ['--k' as string]: i }}>{p}</p>)}
+          <div ref={lines} className="why__lines">
+            {GAP.lines.map((l, i) => (
+              <p key={i} className={`why__line why__line--${l.size}`} style={{ ['--k' as string]: i }}><Marked text={l.text} mark={l.mark} /></p>
+            ))}
+          </div>
         </div>
       </section>
       <section ref={bridge} id="bridge" className="bridge" data-theme="light" aria-label={GAP.cue.words}>

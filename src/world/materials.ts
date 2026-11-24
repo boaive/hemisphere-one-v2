@@ -207,8 +207,8 @@ function build() {
     asphalt: std({ ...withRepeat(paved, 200), color: '#8f8579', roughness: 0.92, normalScale: new THREE.Vector2(0.15, 0.15) }),
     groundCity: std({ ...withRepeat(paved, 400), color: '#9b978f', roughness: 0.95 }),
     // Hemisphere One products
-    jet: std({ color: BRAND.graphite, roughness: 0.5, metalness: 0.05, wave: true }),   // formwork in graphite (no green, per brief)
-    jetClip: std({ color: '#22272b', roughness: 0.5, wave: true }),
+    jet: std({ color: '#45b93b', roughness: 0.42, metalness: 0.0, wave: true }),   // JET plastic formwork: the product's real green
+    jetClip: std({ color: '#23272b', roughness: 0.5, wave: true }),
     h1Yellow: std({ color: BRAND.yellow, roughness: 0.35, metalness: 0.1, wave: true }),
     h1Charcoal: std({ color: '#2b2f33', roughness: 0.45, metalness: 0.25, wave: true }),
     steel: std({ color: '#9aa0a5', metalness: 1, roughness: 0.35, wave: true }),

@@ -6,6 +6,7 @@ import { PRODUCTS } from '../content';
 import { ProductScene } from '../three/ProductObject';
 import { navigate } from '../sitemap';
 import { Words, useReveal } from './Sections';
+import { openInquiry } from './Sidebar';
 
 /**
  * The ecosystem as a train: the five product families glide past continuously (one seamless loop). The
@@ -78,13 +79,16 @@ export default function Ecosystem({ id }: { id: string }) {
   const resume = () => { st.current.paused = false; st.current.target = null; setStopped(false); };
 
   return (
-    <section ref={root} id={id} className="eco" data-theme="dark" aria-label="The ecosystem">
+    <section ref={root} id={id} className="eco" data-theme="light" aria-label="The ecosystem">
       <div className="wrap eco__head">
         <div>
           <p className="kicker">The ecosystem</p>
           <h2 className="eco__title"><Words text="The entire workflow, under one roof." /></h2>
         </div>
-        <p className="eco__lead">Machinery, formwork, reinforcement and concrete chemistry, designed to work together on the same site.</p>
+        <div className="eco__aside">
+          <p className="eco__lead">Machinery, formwork, reinforcement and concrete chemistry, designed to work together on the same site.</p>
+          <button className="btn btn--dark btn--sm" onClick={openInquiry}>Send an inquiry</button>
+        </div>
       </div>
 
       <div className={`eco__viewport ${reduced ? 'is-static' : ''}`} ref={viewport}>
@@ -100,7 +104,7 @@ export default function Ecosystem({ id }: { id: string }) {
                   <p className="eco__line">{p.line}</p>
                   <a className="eco__link" href={p.href} tabIndex={dup ? -1 : undefined}
                     {...(p.external ? { target: '_blank', rel: 'noopener noreferrer' } : { onClick: (e: React.MouseEvent) => { e.preventDefault(); navigate(p.href); } })}>
-                    Explore <span aria-hidden="true">↗</span>
+                    Explore {p.name} <span aria-hidden="true">↗</span>
                   </a>
                 </div>
               </article>

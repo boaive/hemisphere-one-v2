@@ -262,7 +262,7 @@ export function Campus() {
 
     // ---------------- lighting masts
     const masts: THREE.Matrix4[] = [];
-    for (const [x, z] of [[x0 + 6, z0 - 6], [x1 - 6, z0 - 6], [x0 + 6, z1 + 6], [x1 - 6, z1 + 6], [SPUR_X + 6, YARD_Z - 8]]) masts.push(mat(x, 0, z));
+    for (const [x, z] of [[x0 + 6, z0 - 6], [x1 - 6, z0 - 6], [x0 + 6, z1 + 6], [x1 - 6, z1 + 6], [SPUR_X + 6, -60]]) masts.push(mat(x, 0, z));
     g.add(instanced(merge([place(new THREE.CylinderGeometry(0.16, 0.26, 20, 10), 0, 10, 0), place(rbox(2.6, 1.1, 0.35, 0.05), 0, 20.4, 0)]), paint('#8d949a', 0.45, 0.6), masts));
 
     // ---------------- trucks: mixers and flatbeds on the loop; one mixer at the boom pump, one under the plant
@@ -333,7 +333,7 @@ export function Campus() {
       k.obj.position.set(x, 0, z); k.obj.rotation.y = ry;
     });
     // dock apron pour advances west across the bay during the film
-    const len = (APRON.x1 - APRON.x0) * (0.25 + 0.6 * span(t, 0, 21));
+    const len = (APRON.x1 - APRON.x0) * (0.25 + 0.6 * span(t, 0, 19));
     b.fresh.scale.x = len; b.fresh.position.set(APRON.x1 - len / 2, 0.25, (APRON.z0 + APRON.z1) / 2);
     // tower pipeline follows the deck; deck crews ride the active floor
     const F = towerFloors(t, 1), level = Math.min(TOWER.floors, Math.floor(F)), u = F - level;

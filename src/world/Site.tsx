@@ -8,6 +8,8 @@ import { rbox, merge, place, instanced, mesh, mat, rod, rand, boxUVWorld } from 
 import { palmGeometry } from './Landscape';
 import { buildH1 } from './Machine';
 import { anchor } from './anchors';
+import { concrete, withRepeat } from './textures';
+import { premixPalletFilm, chemCansFilm } from '../site/three/models';
 
 /**
  * The everyday site (Scenes 2 + 3), built in site-local metres: frontage x 0..9, depth z 0..-15, front elevation at z = 0.
@@ -17,7 +19,7 @@ const GF = 3.1, PL = 0.45, CW = 0.23, CD = 0.45;
 const COLS_X = [0.115, 4.5, 8.885], COLS_Y = [-0.225, -5, -10, -14.775];
 const EXT: [number, number] = [-4.2, -0.225];          // the extension column (hero of shots 6 + 9)
 const Z1 = GF + 0.125;                                  // first-floor slab top
-const WAVE_O = new THREE.Vector3(...S(11.0, 1.1, 3.1));   // the wave starts at the builder's tablet
+const WAVE_O = new THREE.Vector3(...S(11.8, 1.1, 5.9));   // the wave starts at the builder's tablet
 
 /** a part that travels between a stack and its working position (both local matrices) */
 type Swap = { geo: number; on: THREE.Matrix4; off: THREE.Matrix4; t0: number; dur: number; dir: 'in' | 'out'; appear?: number; pin?: Swap; pout?: Swap };
@@ -53,9 +55,23 @@ export function Site() {
     root.position.set(...SITE_ORIGIN); root.rotation.y = Math.PI;
     const r = rand(42);
     const add = (o: THREE.Object3D) => { root.add(o); return o; };
+    /** old-method things that sink into the ground when the Scene 3 wave front reaches them */
+    const olds: { g: THREE.Group; tw: number }[] = [];
+    const old = (o: THREE.Object3D, cx: number, cz: number) => {
+      const w = new THREE.Group(); w.position.set(cx, 0, cz); o.position.x -= cx; o.position.z -= cz; w.add(o); root.add(w);
+      const wp = new THREE.Vector3(...S(cx, 0.5, cz));
+      olds.push({ g: w, tw: 37 + wp.distanceTo(WAVE_O) / 11 }); return o;
+    };
 
     // ---------------- yard, street, plinth + RC frame (ground floor cast, first-floor columns in forms)
     const yard = mesh(new THREE.PlaneGeometry(60, 50).rotateX(-Math.PI / 2), M.earth, false); yard.position.set(4.5, 0.01, -2); yard.receiveShadow = true; add(yard);
+    const pad = mesh(new THREE.PlaneGeometry(60, 50).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ ...withRepeat(concrete(3), 18, 15), color: '#cbc7bf', roughness: 0.9, normalScale: new THREE.Vector2(0.4, 0.4) }), false);
+    pad.position.set(4.5, 0.012, -2); pad.receiveShadow = true; pad.visible = false; add(pad);
+    // marked walkway and work zone lines on the new pad (brand yellow)
+    const lineG: THREE.BufferGeometry[] = [];
+    for (const [x0, z0, x1, z1] of [[-9.2, 6.6, 12.2, 6.6], [-9.2, 6.6, -9.2, -17.5], [-9.2, -17.5, 12.2, -17.5], [-11.2, -0.6, -3.6, -0.6], [-11.2, -7.6, -3.6, -7.6]] as const)
+      lineG.push(place(new THREE.BoxGeometry(Math.max(0.12, Math.abs(x1 - x0)), 0.01, Math.max(0.12, Math.abs(z1 - z0))), (x0 + x1) / 2, 0.02, (z0 + z1) / 2));
+    const padLines = mesh(merge(lineG), new THREE.MeshStandardMaterial({ color: '#fcd301', roughness: 0.6 }), false); padLines.visible = false; add(padLines);
     add(mesh(new THREE.BoxGeometry(120, 0.06, 7.5), M.asphalt, false)).position.set(4.5, 0.03, 11.5);
     const frame: THREE.BufferGeometry[] = [place(rbox(9.2, PL, 15.2, 0.015), 4.5, PL / 2, -7.5)];
     for (const x of COLS_X) for (const z of COLS_Y) frame.push(place(rbox(CW, GF - PL, CD, 0.008), x, PL + (GF - PL) / 2, z));
@@ -198,10 +214,10 @@ export function Site() {
     const monoWin = mesh(new THREE.BoxGeometry(2.0, w1 - w0, 0.03), M.glass); monoWin.position.set(6.7, (w0 + w1) / 2, 0.06); monoWin.visible = false; add(monoWin);
 
     // ---------------- site life: mortar tub, cement bags, heaps, drums, wheelbarrow, bamboo scaffold, brick pallet, JET pallets
-    add(mesh(new THREE.CylinderGeometry(0.42, 0.34, 0.25, 20), M.tyre)).position.set(1.9, 0.125, 1.0);
-    add(mesh(new THREE.CylinderGeometry(0.39, 0.39, 0.03, 20), M.mortar)).position.set(1.9, 0.23, 1.0);
+    old(mesh(new THREE.CylinderGeometry(0.42, 0.34, 0.25, 20), M.tyre), 1.9, 1.0).position.set(1.9 - 1.9, 0.125, 0);
+    old(mesh(new THREE.CylinderGeometry(0.39, 0.39, 0.03, 20), M.mortar), 1.9, 1.0).position.set(0, 0.23, 0);
     const bags = instanced(rbox(0.42, 0.13, 0.64, 0.05), M.cementBag, Array.from({ length: 12 }, (_, i) => mat(-2.6 + (i % 3) * 0.44, 0.065 + Math.floor(i / 3) * 0.13, 1.8 + (r() - 0.5) * 0.04, 0, (r() - 0.5) * 0.1, 0)));
-    add(bags);
+    old(bags, -2.2, 1.8);
     const heap = (x: number, z: number, rad: number, h: number, m: THREE.Material, seed: number) => {
       const geo = new THREE.SphereGeometry(1, 48, 20, 0, Math.PI * 2, 0, Math.PI / 2);
       const p = geo.getAttribute('position') as THREE.BufferAttribute; const rr = rand(seed);
@@ -214,16 +230,16 @@ export function Site() {
       geo.computeVertexNormals();
       const o = mesh(geo, m); o.position.set(x, 0, z); add(o); return o;
     };
-    heap(-7.6, 4.4, 1.4, 0.85, M.sand, 3);
-    heap(-10.2, 5.6, 1.4, 0.9, M.aggregate, 4);
-    add(instanced(new THREE.CylinderGeometry(0.29, 0.29, 0.88, 28), M.drum, [mat(12.6, 0.44, -1.6), mat(12.7, 0.44, -2.3), mat(13.3, 0.44, -1.9)]));
+    const h1o = heap(-7.6, 4.4, 1.4, 0.85, M.sand, 3); root.remove(h1o); old(h1o, -7.6, 4.4);
+    const h2o = heap(-10.2, 5.6, 1.4, 0.9, M.aggregate, 4); root.remove(h2o); old(h2o, -10.2, 5.6);
+    old(instanced(new THREE.CylinderGeometry(0.29, 0.29, 0.88, 28), M.drum, [mat(12.6, 0.44, -1.6), mat(12.7, 0.44, -2.3), mat(13.3, 0.44, -1.9)]), 12.9, -1.9);
     const pallet = merge(Array.from({ length: 5 }, (_, k) => place(merge(Array.from({ length: 6 }, (_, i) => place(rbox(0.23, 0.075, 0.11, 0.005, 1), -0.3 + (i % 2) * 0.24 + (k % 2 ? 0.12 : 0), 0.0375 + k * 0.077, -0.25 + Math.floor(i / 2) * 0.12))), 0, 0.12, 0)));
-    add(instanced(pallet, M.brick, [mat(-6.4, 0, 2.2, 0, 0.3, 0), mat(-5.6, 0, 2.6, 0, 0.1, 0)], { colors: [new THREE.Color('#b8603f'), new THREE.Color('#ad5a3b')] }));
+    old(instanced(pallet, M.brick, [mat(-6.4, 0, 2.2, 0, 0.3, 0), mat(-5.6, 0, 2.6, 0, 0.1, 0)], { colors: [new THREE.Color('#b8603f'), new THREE.Color('#ad5a3b')] }), -6.0, 2.4);
     // bamboo scaffold on the right flank, lashed with coir
     const bam: THREE.BufferGeometry[] = [];
     for (let i = 0; i < 7; i++) for (const dx of [9.6, 10.6]) bam.push(rod(new THREE.Vector3(dx, 0, -i * 2.5), new THREE.Vector3(dx + (r() - 0.5) * 0.1, 7.4, -i * 2.5 + (r() - 0.5) * 0.1), 0.042, 7));
     for (let k = 0; k < 5; k++) for (const dx of [9.6, 10.6]) bam.push(rod(new THREE.Vector3(dx, 1.2 + k * 1.45, 0.3), new THREE.Vector3(dx, 1.25 + k * 1.45, -15.3), 0.036, 7));
-    add(mesh(merge(bam), M.bamboo));
+    old(mesh(merge(bam), M.bamboo), 10.1, -7.5);
 
     // ---------------- H1-561 MINI - revealed by a scanning clip plane (local y) at story 41.3 s
     const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
@@ -232,44 +248,69 @@ export function Site() {
     add(h1.group);
     const trace = mesh(new THREE.TorusGeometry(1.95, 0.012, 6, 72).rotateX(Math.PI / 2).scale(1, 1, 0.62), new THREE.MeshBasicMaterial({ color: '#FCD301', toneMapped: false }), false);
     trace.position.copy(h1.group.position); trace.rotation.y = -0.3; add(trace);
-    // a neat pallet of premix beside the machine (brand colours only: approved packaging artwork is pending)
-    const premixMat = M.premixBag;
-    const premix = instanced(rbox(0.42, 0.13, 0.64, 0.05), premixMat, Array.from({ length: 12 }, (_, i) => mat(-0.44 + (i % 3) * 0.44, 0.19 + Math.floor(i / 3) * 0.135, 0, 0, (i % 2) * 0.03, 0)), { shadow: true });
-    const premixPallet = new THREE.Group(); premixPallet.add(premix, mesh(rbox(1.3, 0.12, 0.8, 0.01), M.timber));
-    premixPallet.children[1].position.y = 0.06;
-    premixPallet.position.set(-9.6, 0, -2.9); premixPallet.rotation.y = -0.3;
+    // a pallet of ENERMIX-25 sacks (printed face up) and ACTIPOUR / ACTIMIX-PR cans beside the machine
+    const premixPallet = premixPalletFilm();
+    premixPallet.position.set(-9.0, 0, -2.4); premixPallet.rotation.y = -0.3;
     add(premixPallet);
+    const cans = chemCansFilm(); cans.scale.setScalar(0.36 / 0.5 * 0.5); cans.position.set(-5.5, 0, -5.9); cans.rotation.y = 0.5; add(cans);
     // delivery hose: machine outlet -> top of the extension column form
     const out = h1.outlet.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), h1.group.rotation.y).add(h1.group.position);
     const hoseCurve = new THREE.CatmullRomCurve3([out, out.clone().add(new THREE.Vector3(0.35, -0.45, 0.1)), new THREE.Vector3(-5.4, 0.1, -1.9), new THREE.Vector3(-4.9, 0.12, -0.8), new THREE.Vector3(-4.5, 1.8, -0.6), new THREE.Vector3(-4.2, 3.55, -0.23)]);
     const hose = mesh(new THREE.TubeGeometry(hoseCurve, 80, 0.055, 10), M.tyre); add(hose);
 
+    // ---------------- Scene 3: the site becomes a controlled environment - hoarding rises on the back and west sides
+    const hoard: { g: THREE.Group; tw: number }[] = [];
+    const hoardM = new THREE.MeshStandardMaterial({ color: '#e3e1db', roughness: 0.6, metalness: 0.1 }), capM = new THREE.MeshStandardMaterial({ color: '#fcd301', roughness: 0.45 });
+    const run = (ax: number, az: number, bx: number, bz: number) => {
+      const len = Math.hypot(bx - ax, bz - az), n = Math.round(len / 2.4), ry = Math.atan2(bx - ax, bz - az) + Math.PI / 2;
+      for (let i = 0; i < n; i++) {
+        const u = (i + 0.5) / n, x = ax + (bx - ax) * u, z = az + (bz - az) * u;
+        const pg = new THREE.Group(); pg.position.set(x, 0, z); pg.rotation.y = ry;
+        const pnl = mesh(new THREE.BoxGeometry(2.38, 2.4, 0.06), hoardM); pnl.position.y = 1.2; pg.add(pnl);
+        const cp = mesh(new THREE.BoxGeometry(2.4, 0.12, 0.09), capM, false); cp.position.y = 2.46; pg.add(cp);
+        pg.scale.y = 0.001; root.add(pg);
+        hoard.push({ g: pg, tw: 37 + new THREE.Vector3(...S(x, 1.2, z)).distanceTo(WAVE_O) / 11 });
+      }
+    };
+    run(-9.8, 8, -9.8, -18.2); run(-9.8, -18.2, 12.6, -18.2);
+
     // ---------------- neighbours, street, power lines, palms (keeps the skyline visible behind the site)
     const nb = [[-14, -6, 8, 14, 6.4, 0], [16.5, -6, 7, 14, 9.6, 1], [-14, 22, 10, 9, 6.4, 2], [22, 22, 8, 9, 6.4, 1]];
+    const oldNb = new THREE.Group(), newNb = new THREE.Group(); add(oldNb); add(newNb); newNb.visible = false;
+    const render = new THREE.MeshStandardMaterial({ color: '#eeece7', roughness: 0.7 }), band = new THREE.MeshPhysicalMaterial({ color: '#7f97a8', roughness: 0.06, metalness: 0.35, clearcoat: 1, envMapIntensity: 1.4 }), fin = new THREE.MeshStandardMaterial({ color: '#2d3237', roughness: 0.5, metalness: 0.4 });
     nb.forEach(([x, z, w, d, h, ci]) => {
-      const o = mesh(new THREE.BoxGeometry(w, h, d), M.house[ci]); o.position.set(x, h / 2, z); add(o);
-      const rf = mesh(rbox(w + 0.3, 0.16, d + 0.3, 0.02), M.roof); rf.position.set(x, h + 0.08, z); add(rf);
-      const tk = mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.25, 16), M.tank); tk.position.set(x + w / 4, h + 0.78, z - d / 4); add(tk);
+      const o = mesh(new THREE.BoxGeometry(w, h, d), M.house[ci]); o.position.set(x, h / 2, z); oldNb.add(o);
+      const rf = mesh(rbox(w + 0.3, 0.16, d + 0.3, 0.02), M.roof); rf.position.set(x, h + 0.08, z); oldNb.add(rf);
+      const tk = mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.25, 16), M.tank); tk.position.set(x + w / 4, h + 0.78, z - d / 4); oldNb.add(tk);
+      // the modern successor: white render, ribbon glazing per floor, slim slab edges and a flat roof overhang
+      const floors = Math.max(2, Math.round(h / 3.2)), H2 = floors * 3.3;
+      const m = mesh(new THREE.BoxGeometry(w, H2, d), render); m.position.set(x, H2 / 2, z); newNb.add(m);
+      for (let f = 0; f < floors; f++) {
+        const gb = mesh(new THREE.BoxGeometry(w + 0.04, 1.2, d + 0.04), band, false); gb.position.set(x, f * 3.3 + 1.7, z); newNb.add(gb);
+        const sl = mesh(rbox(w + 0.5, 0.18, d + 0.5, 0.02), render); sl.position.set(x, (f + 1) * 3.3, z); newNb.add(sl);
+      }
+      const fn = mesh(new THREE.BoxGeometry(0.25, H2, 0.6), fin); fn.position.set(x - w / 2 + 0.4, H2 / 2, z + d / 2); newNb.add(fn);
     });
     const poles = [-14, 6, 26].map((x) => new THREE.Vector3(x, 0, 8.2));
     const lines: THREE.BufferGeometry[] = [];
     poles.forEach((p) => { lines.push(place(new THREE.CylinderGeometry(0.11, 0.15, 9.5, 8), p.x, 4.75, p.z)); lines.push(place(rbox(2.0, 0.1, 0.1, 0.01), p.x, 9.1, p.z)); });
-    add(mesh(merge(lines), M.pole));
+    const polesM = add(mesh(merge(lines), M.pole));
     const wires: THREE.BufferGeometry[] = [];
     for (let i = 0; i < poles.length - 1; i++) for (const o of [-0.85, -0.3, 0.3, 0.85]) {
       const a = poles[i].clone().add(new THREE.Vector3(o, 9.15, 0)), b = poles[i + 1].clone().add(new THREE.Vector3(o, 9.15, 0));
       const pts = Array.from({ length: 16 }, (_, k) => { const t = k / 15; const p = a.clone().lerp(b, t); p.y -= 0.9 * 4 * t * (1 - t); return p; });
       wires.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.012, 4));
     }
-    add(mesh(merge(wires), M.wire, false));
+    const wiresM = add(mesh(merge(wires), M.wire, false));
+    const palmsG = new THREE.Group(); add(palmsG);
     const palm = palmGeometry();
     const palms: [number, number, number][] = [[-11, 4.5, 11], [13.5, 4, 13], [-9, -18, 12], [18, -16, 14]];
     palms.forEach(([x, z, h]) => {
-      add(mesh(new THREE.CylinderGeometry(0.15, 0.2, h, 8).translate(0, h / 2, 0), M.trunk)).position.set(x, 0, z);
-      add(mesh(palm, M.frond)).position.set(x, h, z);
+      palmsG.add(mesh(new THREE.CylinderGeometry(0.15, 0.2, h, 8).translate(0, h / 2, 0), M.trunk)); palmsG.children[palmsG.children.length - 1].position.set(x, 0, z);
+      palmsG.add(mesh(palm, M.frond)); palmsG.children[palmsG.children.length - 1].position.set(x, h, z);
     });
 
-    return { root, swapMeshes, bricks, brickMesh, plaster, wet, mono, monoWin, h1, clipPlane, trace, hose, bays, tops, premixPallet };
+    return { root, swapMeshes, bricks, brickMesh, plaster, wet, mono, monoWin, h1, clipPlane, trace, hose, bays, tops, premixPallet, cans, olds, hoard, yard, pad, padLines, oldNb, newNb, polesM, wiresM, palmsG };
   }, [M]);
 
   const tmp = useMemo(() => ({ m: new THREE.Matrix4(), z: new THREE.Matrix4().makeScale(0, 0, 0), w: new THREE.Vector3() }), []);
@@ -324,7 +365,16 @@ export function Site() {
     // clip plane works in world space: the site group is at y = 0, so local y == world y
     b.clipPlane.constant = rv * 1.9;
     b.trace.position.y = rv * 1.9;
-    b.premixPallet.visible = film.scene === 3 && t > 41.6;
+    b.premixPallet.visible = b.cans.visible = film.scene === 3 && t > 40.9;
+    // ---- Scene 3 transformation into a controlled environment (deterministic in story time)
+    const s3 = film.scene === 3;
+    for (const o of b.olds) { const k = s3 ? smooth(span(t, o.tw + 0.1, o.tw + 0.7)) : 0; o.g.scale.set(1 - k * 0.999, 1 - k * 0.999, 1 - k * 0.999); o.g.visible = k < 0.995; }
+    for (const h of b.hoard) { const k = s3 ? seat(span(t, h.tw + 0.2, h.tw + 0.9)) : 0; h.g.scale.y = Math.max(0.001, k); h.g.visible = k > 0.002; }
+    const clean = s3 && t >= 40.95;                 // the cut into the machine shot
+    b.pad.visible = b.padLines.visible = clean; b.yard.visible = !clean;
+    const modern = s3 && t >= 49.95;                // second half: the neighbourhood is modern
+    b.newNb.visible = modern; b.oldNb.visible = !modern;
+    b.polesM.visible = b.wiresM.visible = b.palmsG.visible = !modern;
     b.h1.mixer.rotation.z = t > 42.5 ? film.t * 6 : 0;          // mixing shafts turn at real speed
     b.h1.mix.position.y = 1.45 + Math.sin(film.t * 7) * 0.008;
     b.hose.visible = t > 43.0;
@@ -341,7 +391,7 @@ export function Site() {
     anchor('premix', ...S(-9.6, 1.0, -2.9));
     anchor('brick', ...S(2.3, 1.6, 0.1));
     anchor('wall', ...S(3.0, 2.0, 0.15));
-    anchor('builder', ...S(11.2, 1.85, 3.4));
+    anchor('builder', ...S(12.0, 1.85, 6.2));
   });
 
   return <primitive object={B.root} />;

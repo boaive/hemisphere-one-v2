@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { mats } from './materials';
 import { merge, place, instanced, mesh, mat, rand, boxUVWorld } from './geo';
-import { SITE_ORIGIN, CAMPUS } from '../film/shots';
+import { SITE_ORIGIN, CAMPUS, NODES, SITE_CENTRE } from '../film/shots';
 import { film } from '../film/clock';
 
 /**
@@ -115,6 +115,7 @@ export function Landscape() {
       const x = sx + (r() - 0.5) * 1200;
       const z = RING_Z - 60 - Math.pow(r(), 0.75) * 1100;
       if (nearSite(x, z)) continue;
+      if (NODES.some((n) => Math.hypot(x - (SITE_CENTRE[0] + n.dx), z - (SITE_CENTRE[2] + n.dz)) < 24)) continue;   // the finale's plots
       const lx = ((x - (sx - 4.5) + 32) % 64 + 64) % 64, lz = ((z - (RING_Z - 70)) % 76 + 76) % 76;
       if (lx < 6 || lx > 58 || lz < 5) continue;                                     // keep lanes clear
       const wd = 6 + r() * 6, d = 8 + r() * 7, h = 3.1 * (1 + Math.floor(r() * r() * 3.2));

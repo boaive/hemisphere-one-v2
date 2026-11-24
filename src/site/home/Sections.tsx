@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { CONTACT, FOOTER_MAP, INQUIRY_URL, enquiry } from '../content';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Sidebar, openInquiry, type SideView } from './Sidebar';
+import { CONTACT, FOOTER_MAP, enquiry } from '../content';
 import { navigate } from '../sitemap';
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -44,46 +45,32 @@ export function Loader() {
   );
 }
 
-// ------------------------------------------------------------------ header + menu
-const NAV = [
-  { label: 'The story', id: 'story' },
-  { label: 'Modern construction', id: 'modern' },
-  { label: 'The ecosystem', id: 'products' },
-  { label: 'Contact', id: 'contact' },
-];
+// ------------------------------------------------------------------ header + sidebar
 export function Header({ theme }: { theme: 'light' | 'dark' }) {
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<SideView>('menu');
+  const trigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    document.documentElement.classList.toggle('menu-open', open);
-    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
-  }, [open]);
+    const on = () => { setView('form'); setOpen(true); };
+    window.addEventListener('h1:inquiry', on);
+    return () => window.removeEventListener('h1:inquiry', on);
+  }, []);
+  const close = useCallback(() => { setOpen(false); trigger.current?.focus({ preventScroll: true }); }, []);
   return (
     <>
-      <header className={`hdr hdr--${open ? 'dark' : theme}`}>
-        <a className="hdr__logo" href="#story" onClick={(e) => { e.preventDefault(); setOpen(false); go('story'); }} aria-label="Hemisphere One, back to the top">
+      <header className={`hdr hdr--${theme}`}>
+        <a className="hdr__logo" href="#story" onClick={(e) => { e.preventDefault(); go('story'); }} aria-label="Hemisphere One, back to the top">
           <img className="hdr__mark hdr__mark--light" src="/brand/hemisphere-one-logo.png" alt="Hemisphere One" width={460} height={87} />
           <img className="hdr__mark hdr__mark--dark" src="/brand/hemisphere-one-logo-ink.png" alt="" aria-hidden="true" width={460} height={87} />
         </a>
         <div className="hdr__right">
-          <a className="btn btn--accent btn--sm hdr__cta" href={INQUIRY_URL} target="_blank" rel="noopener noreferrer">Send an inquiry</a>
-          <button className="hdr__menu" aria-expanded={open} aria-controls="menu" onClick={() => setOpen((o) => !o)}>
-            <span className="hdr__menu-label">{open ? 'Close' : 'Menu'}</span><span className="hdr__burger" aria-hidden="true"><i /><i /></span>
+          <button className="btn btn--accent btn--sm hdr__cta" onClick={openInquiry}>Send an inquiry</button>
+          <button ref={trigger} className="hdr__menu" aria-expanded={open} aria-controls="side" onClick={() => { setView('menu'); setOpen(true); }}>
+            <span className="hdr__menu-label">Menu</span><span className="hdr__burger" aria-hidden="true"><i /><i /></span>
           </button>
         </div>
       </header>
-      <div id="menu" className={`menu ${open ? 'is-open' : ''}`} hidden={!open}>
-        <nav className="wrap menu__nav" aria-label="Primary">
-          {NAV.map((n, i) => (
-            <a key={n.id} href={`#${n.id}`} style={{ ['--k' as string]: i }} onClick={(e) => { e.preventDefault(); setOpen(false); go(n.id); }}>{n.label}</a>
-          ))}
-        </nav>
-        <div className="wrap menu__foot">
-          <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
-          <a href={CONTACT.phoneHref}>{CONTACT.phone}</a>
-          <span>Mumbai · Sharjah</span>
-        </div>
-      </div>
+      <div id="side"><Sidebar open={open} view={view} onClose={close} onView={setView} /></div>
     </>
   );
 }
@@ -113,7 +100,7 @@ export function Footer() {
         <div className="ftr__cta">
           <p>Tell us about your project. Our engineers will recommend the right system, machinery and materials.</p>
           <div className="ftr__btns">
-            <a className="btn btn--accent btn--lg" href={INQUIRY_URL} target="_blank" rel="noopener noreferrer">Send an inquiry</a>
+            <button className="btn btn--accent btn--lg" onClick={openInquiry}>Send an inquiry</button>
             <a className="btn btn--line btn--lg" href={CONTACT.profile} target="_blank" rel="noopener noreferrer">Company profile <span aria-hidden="true">↗</span></a>
           </div>
         </div>

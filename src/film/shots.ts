@@ -22,7 +22,18 @@ export const SITE_ORIGIN: V3 = [10, 0, -900];
 /** site-local -> world (site group rotated by PI about Y; the house front faces away from the district) */
 export const S = (lx: number, ly: number, lz: number): V3 => [SITE_ORIGIN[0] - lx, ly, SITE_ORIGIN[2] - lz];
 export const SITE_CENTRE = S(4.5, 0, -7.5);
-export const BUILDER_POS: [number, number] = [11.2, 3.4];
+export const BUILDER_POS: [number, number] = [12.0, 6.2];
+/** film 3 finale: everyday plots (world offsets from the site centre) where the bridge lands and a modern site builds */
+export const NODES: { dx: number; dz: number; kind: 'jet' | 'precast' | 'panel'; ry: number; label?: string }[] = [
+  { dx: -78, dz: 72, kind: 'jet', ry: 0.3 },
+  { dx: 72, dz: 112, kind: 'precast', ry: -0.4 },
+  { dx: -168, dz: 168, kind: 'panel', ry: 0.2 },
+  { dx: 160, dz: 58, kind: 'jet', ry: -0.2 },
+  { dx: -36, dz: 232, kind: 'precast', ry: 0.5 },
+  { dx: 132, dz: 252, kind: 'panel', ry: -0.3 },
+  { dx: -232, dz: 52, kind: 'precast', ry: 0.1 },
+  { dx: 240, dz: 186, kind: 'jet', ry: 0.4 },
+];
 
 const polar = (c: V3, azDeg: number, r: number, h: number): V3 => {
   const a = (azDeg * Math.PI) / 180;
@@ -76,34 +87,35 @@ const truck = (pos: V3, tgt: V3, by: V3, dur: number) => ({ pos: line(pos, add(p
  * reveals the whole controlled environment. No orbits, no combined pan + push, no handheld drift.
  */
 const AL_T: V3 = [-6.4, 53.5, 8.2];                 // aim point: the tower top sits on the right third
-const PC_T: V3 = [PRECAST.x - 10, 18, PRECAST.z + 6];
-const DC_T: V3 = [DATACENTER.x + 4, 5, DATACENTER.z + 12];
+const PC_T: V3 = [PRECAST.x - 2, 21, PRECAST.z + 4];        // the hero slot, seen from below
+const DC_T: V3 = [DATACENTER.x + 10, 5, DATACENTER.z + 10];
 const END_T: V3 = [-2, 4, -48];
 const S1: Shot[] = [
   {
     // Aluform: a slow push-in on the climbing top floors (forms going up, deck assembling, crew at work)
-    id: 'aluform', dur: 5.6, scale: 'city', level: 0.85,
-    pos: line(axis(AL_T, 38, 9, 66), axis(AL_T, 38, 9, 54), 5.6, true, true),
-    tgt: line(AL_T, AL_T, 5.6),
+    id: 'aluform', dur: 4.6, scale: 'city', level: 0.85,
+    pos: line(axis(AL_T, 38, 9, 66), axis(AL_T, 38, 9, 53), 4.6, true, true),
+    tgt: line(AL_T, AL_T, 4.6),
     lens: lens(32), portrait: { pull: 1.35, lens: 0.88 },
   },
   {
-    // Volumetric precast: a slow truck to the right as the next module rises from the trailer and is set
-    id: 'precast', dur: 5.2, scale: 'city', level: 0.9,
-    ...truck(axis(PC_T, 84, 7, 66), PC_T, [6, 0, 0], 5.2),
-    lens: lens(32), portrait: { pull: 1.3, lens: 0.88 },
+    // Volumetric precast: a low three-quarter view looking up at the slot; slow truck right as the module is set
+    id: 'precast', dur: 4.4, scale: 'city', level: 0.9,
+    ...truck(axis(PC_T, 62, -6, 56), PC_T, [4.4, 0, -2.35], 4.4),
+    lens: lens(30), portrait: { pull: 1.3, lens: 0.88 },
   },
   {
-    // Panelized: the data hall's dock wall, closed in; the crane sets the last panel. Slow truck to the right
-    id: 'panelized', dur: 5.2, scale: 'city', level: 0.9,
-    ...truck(axis(DC_T, 100, 18, 84), DC_T, [6, 0, 0], 5.2),
-    lens: lens(35), portrait: { pull: 1.3, lens: 0.88, shift: [0, 0.2] },
+    // Panelized: a low oblique view down the dock wall (ribbed panels raking in the light); the crane sets the
+    // last panel. Slow truck right
+    id: 'panelized', dur: 4.4, scale: 'city', level: 0.9,
+    ...truck(axis(DC_T, 140, 7, 70), DC_T, [3.4, 0, 4.1], 4.4),
+    lens: lens(32), portrait: { pull: 1.3, lens: 0.88, shift: [0, 0.2] },
   },
   {
     // one long pull-back on a fixed axis: from the three systems to the whole controlled environment
-    id: 'apex', dur: 7.0, scale: 'city', level: 0.5,
-    pos: line(axis(END_T, 62, 17.5, 250), axis(END_T, 62, 17.5, 560), 7.0, true, true),
-    tgt: line(END_T, END_T, 7.0),
+    id: 'apex', dur: 5.6, scale: 'city', level: 0.5,
+    pos: line(axis(END_T, 62, 17.5, 250), axis(END_T, 62, 17.5, 560), 5.6, true, true),
+    tgt: line(END_T, END_T, 5.6),
     lens: lens(32), shift: [-0.1, -0.02], portrait: { pull: 1.35, lens: 0.9, shift: [0, 0.16] },
   },
 ];
@@ -111,34 +123,38 @@ const S1: Shot[] = [
 // ------------------------------------------------------------------ SCENE 2 - The Reality on the Ground
 const S2: Shot[] = [
   {
-    // from the giants' skyline, tilting and booming down to the everyday site
+    // from the giants' skyline, a slow crane-down onto the everyday site (one continuous tilt)
     id: 'skyline', dur: 4.6, scale: 'site', aim: 'slerp', level: 0.6,
-    pos: line(S(4.6, 14.5, 33), S(4.5, 9.5, 27), 4.6, true, true),
+    pos: line(S(4.6, 15, 36), S(4.5, 9, 29), 4.6, true, true),
     tgt: [{ t: 0, v: [2, 52, 0] }, { t: 4.6, v: S(4.5, 2.4, -5) }],
-    lens: lens(50), portrait: { pull: 1.2, lens: 0.85 },
+    lens: lens(45), portrait: { pull: 1.2, lens: 0.85 },
   },
   {
+    // plywood shuttering on the extension column: a medium shot at eye level, slow drift left
     id: 'plywood', dur: 3.8, scale: 'human',
-    pos: line(S(0.3, 1.62, 3.4), S(-0.6, 1.62, 3.0), 3.8),
-    tgt: line(S(-4.2, 1.45, -0.05), S(-4.25, 1.45, -0.1), 3.8),
-    lens: lens(32), focus: 'target', fstop: 4, portrait: { pull: 1.25, lens: 0.85 },
+    pos: line(S(1.6, 1.7, 6.0), S(0.6, 1.7, 5.7), 3.8, true, true),
+    tgt: line(S(-4.0, 1.4, 0), S(-4.4, 1.4, 0), 3.8, true, true),
+    lens: lens(32), focus: 'target', fstop: 5.6, portrait: { pull: 1.25, lens: 0.85 },
   },
   {
+    // the bare RC frame from the yard corner, looking up (static-feeling, a few centimetres of rise)
     id: 'rc-frame', dur: 3.3, scale: 'human',
-    pos: line(S(12.4, 1.3, 7.6), S(10.8, 1.45, 8.1), 3.3),
-    tgt: line(S(5.6, 4.3, -4.5), S(5.2, 4.4, -4.6), 3.3),
+    pos: line(S(13.4, 1.4, 9.6), S(12.6, 1.6, 9.9), 3.3, true, true),
+    tgt: line(S(5.4, 4.3, -4.6), S(5.2, 4.4, -4.6), 3.3, true, true),
     lens: lens(28), portrait: { pull: 1.2, lens: 0.85 },
   },
   {
+    // brickwork and plaster: a slow lateral dolly along the wall at a comfortable distance
     id: 'brickwork', dur: 3.8, scale: 'human',
-    pos: line(S(1.0, 1.6, 6.3), S(3.6, 1.6, 6.15), 3.8),
-    tgt: line(S(2.4, 1.15, 0), S(5.0, 1.15, 0), 3.8),
-    lens: lens(38), focus: 'target', fstop: 4, portrait: { pull: 1.2, lens: 0.85 },
+    pos: line(S(0.6, 1.7, 8.6), S(3.4, 1.7, 8.5), 3.8, true, true),
+    tgt: line(S(2.2, 1.3, 0), S(5.0, 1.3, 0), 3.8, true, true),
+    lens: lens(35), focus: 'target', fstop: 5.6, portrait: { pull: 1.2, lens: 0.85 },
   },
   {
+    // the whole site, then up to the neighbourhood: this is how most of the country builds
     id: 'reality', dur: 4.0, scale: 'site',
-    pos: line(S(4.5, 2.4, 22), S(4.6, 8.5, 24.5), 4.0, false, true),
-    tgt: line(S(4.5, 3.6, -6), S(4.5, 6.2, -28), 4.0, false, true),
+    pos: line(S(4.5, 2.6, 24), S(4.6, 9, 27), 4.0, true, true),
+    tgt: line(S(4.5, 3.6, -6), S(4.5, 6.2, -28), 4.0, true, true),
     lens: lens(32), portrait: { pull: 1.2, lens: 0.85 },
   },
 ];
@@ -146,39 +162,45 @@ const S2: Shot[] = [
 // ------------------------------------------------------------------ SCENE 3 - The Hemisphere One Bridge
 const S3: Shot[] = [
   {
+    // the wave crosses the site and it becomes a controlled environment (wide, slow push)
     id: 'wave', dur: 4.0, scale: 'site',
-    pos: line(S(-6.5, 5.6, 18.5), S(-4.8, 5.2, 16.8), 4.0, true),
-    tgt: line(S(5.0, 1.6, -2.5), S(5.2, 1.6, -2.5), 4.0, true),
+    pos: line(S(-9, 7.4, 25), S(-7.4, 6.8, 22.5), 4.0, true, true),
+    tgt: line(S(4.6, 1.8, -3), S(4.8, 1.8, -3), 4.0, true, true),
     lens: lens(30), portrait: { pull: 1.25, lens: 0.85 },
   },
   {
+    // JET plastic formwork (green) on the extension column: medium shot, slow drift
     id: 'jet', dur: 4.0, scale: 'human',
-    pos: line(S(-0.6, 1.9, 5.2), S(-1.6, 2.0, 4.6), 4.0),
-    tgt: line(S(-3.6, 1.7, -0.1), S(-3.4, 1.75, -0.1), 4.0),
-    lens: lens(35), focus: 'target', fstop: 4, portrait: { pull: 1.25, lens: 0.85 },
+    pos: line(S(0.6, 2.1, 7.6), S(-0.6, 2.2, 7.1), 4.0, true, true),
+    tgt: line(S(-3.8, 1.6, -0.1), S(-3.9, 1.65, -0.1), 4.0, true, true),
+    lens: lens(32), focus: 'target', fstop: 5.6, portrait: { pull: 1.25, lens: 0.85 },
   },
   {
+    // the H1-561 MINI with real premix and chemicals beside it: a slow arc-free truck
     id: 'machine', dur: 3.6, scale: 'human',
-    pos: line(S(-4.9, 2.05, 1.0), S(-6.5, 2.0, 1.5), 3.6),
-    tgt: line(S(-7.4, 0.85, -4.0), S(-7.7, 0.85, -4.1), 3.6),
-    lens: lens(35), focus: 'target', fstop: 4, portrait: { pull: 1.25, lens: 0.85 },
+    pos: line(S(-3.0, 2.5, 4.2), S(-4.6, 2.45, 4.6), 3.6, true, true),
+    tgt: line(S(-7.4, 0.9, -3.4), S(-8.4, 0.9, -3.0), 3.6, true, true),
+    lens: lens(30), focus: 'target', fstop: 5.6, portrait: { pull: 1.25, lens: 0.85 },
   },
   {
+    // the forms strike: one monolithic wall, no plaster. Slow lateral dolly
     id: 'wall', dur: 3.6, scale: 'human',
-    pos: line(S(1.4, 1.6, 5.4), S(4.6, 1.6, 5.4), 3.6),
-    tgt: line(S(3.0, 1.4, 0), S(6.2, 1.4, 0), 3.6),
+    pos: line(S(1.0, 1.8, 8.2), S(4.0, 1.8, 8.2), 3.6, true, true),
+    tgt: line(S(3.0, 1.5, 0), S(6.0, 1.5, 0), 3.6, true, true),
     lens: lens(35), focus: 'target', fstop: 5.6, portrait: { pull: 1.2, lens: 0.85 },
   },
   {
+    // the builder, satisfied; the neighbourhood behind him is modern now (new light)
     id: 'builder', dur: 3.8, scale: 'human',
-    pos: line(S(13.7, 1.52, 0.1), S(13.3, 1.54, 0.5), 3.8),
-    tgt: line(S(11.1, 1.3, 3.5), S(11.1, 1.3, 3.7), 3.8),
-    lens: lens(45), focus: 'target', fstop: 2.8, portrait: { pull: 1.2, lens: 0.85 },
+    pos: line(S(10.1, 1.66, 1.4), S(10.6, 1.67, 1.7), 3.8, true, true),
+    tgt: line(S(12.0, 1.45, 6.2), S(12.05, 1.45, 6.25), 3.8, true, true),
+    lens: lens(40), focus: 'target', fstop: 4, portrait: { pull: 1.2, lens: 0.85 },
   },
   {
-    id: 'ecosystem', dur: 5.0, scale: 'city',
-    pos: [{ t: 0, v: S(13, 7, 30) }, { t: 2.2, v: S(17, 38, 72) }, { t: 5.0, v: S(24, 108, 158), ease: true }],
-    tgt: [{ t: 0, v: S(4.5, 2, -6) }, { t: 2.2, v: S(4.5, 0, -40) }, { t: 5.0, v: S(4.5, 0, -150), ease: true }],
+    // the bridge spreads: one long rise and pull-back as arcs land and modern sites build across the town
+    id: 'ecosystem', dur: 7.0, scale: 'city',
+    pos: [{ t: 0, v: S(13, 4.5, 26), ease: true }, { t: 2.8, v: S(18, 34, 70) }, { t: 7.0, v: S(26, 104, 128), ease: true }],
+    tgt: [{ t: 0, v: S(4.5, 2, -6), ease: true }, { t: 2.8, v: S(4.5, 0, -60) }, { t: 7.0, v: S(0, 0, -150), ease: true }],
     lens: lens(30), portrait: { pull: 1.25, lens: 0.9 },
   },
 ];
@@ -203,6 +225,6 @@ export function shotAt(scene: SceneId, t: number) {
 const STORY: Record<SceneId, [number, number][]> = {
   1: [[0, 0], [100, 100]],
   2: [[0, 19.0], [4.6, 23.0], [4.6001, 23.8], [8.4, 27.2], [11.7, 28.6], [15.5, 32.8], [19.5, 36.6]],
-  3: [[0, 36.8], [4.0, 38.3], [8.0, 41.0], [11.6, 43.8], [11.6001, 45.9], [15.2, 50.0], [19.0, 54.0], [24.0, 58.6]],
+  3: [[0, 36.8], [4.0, 38.3], [8.0, 41.0], [11.6, 43.8], [11.6001, 45.9], [15.2, 50.0], [19.0, 54.0], [26.0, 61.0]],
 };
 export const storyTime = (scene: SceneId, t: number) => pw(t, STORY[scene]);

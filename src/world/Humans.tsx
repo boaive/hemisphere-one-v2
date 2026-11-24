@@ -1,40 +1,66 @@
 import { useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { film, span } from '../film/clock';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { film, span, smooth } from '../film/clock';
 import { SITE_ORIGIN } from '../film/shots';
 import { track } from '../ui/loading';
 
 /**
- * Rigged, animated humans from Blender (MPFB base -> glTF). Every clip is posed from film time (deterministic scrub).
- * Characters face +Z in their files; placements are site-local (the site group is rotated 180 deg).
+ * The cast of films 2 and 3: one rigged construction worker (Mixamo "Ch17": hard hat, hi-vis vest, work trousers,
+ * boots) instanced per role with motion-capture clips (render-assets/mixamo). Every pose is set from film / story
+ * time, so any frame renders on its own. Placements are site-local (the site group is rotated 180 deg).
+ * Render-only: the website plays the pre-rendered films and never loads these files.
  */
-type Cast = {
-  file: string; pos: [number, number, number]; ry: number;
-  clip: (t: number) => { name: string; time: number } | null;   // which clip + time at film time t
-  visible: (t: number) => boolean;
-};
-const loop = (name: string, speed = 1, offset = 0) => (t: number) => ({ name, time: (t * speed + offset) });
+const CHAR = '/render-assets/mixamo/character.fbx';
+const CLIPS = ['builder_tablet', 'builder_happy', 'builder_idle', 'worker_hands', 'worker_kneel', 'worker_place', 'worker_lift', 'worker_walk'] as const;
+type ClipName = (typeof CLIPS)[number];
+type Pose = { clip: ClipName; time: number; weight?: number; hold?: boolean };
 
-/**
- * Scene 2: everyone at work. Scene 3: the conventional crew leaves at the cuts (never mid-shot) as the new system
- * takes over; the builder stays. Loops run on real film time; the builder's reaction runs on story time.
- */
-const inS3 = (until: number) => (t: number) => film.scene === 2 || (film.scene === 3 && film.story < until);
-export const CAST: Record<string, Cast> = {
-  builder: {
-    file: '/models/humans/builder.glb', pos: [11.2, 0, 3.4], ry: -2.72,   // faces the house front
-    clip: () => (film.scene === 3 && film.story >= 50 ? { name: 'step_back_tablet', time: Math.min(film.story - 50, 4.2) } : { name: 'idle_inspect', time: film.t + 1.3 }),
-    visible: () => film.scene !== 1,
+type Role = {
+  id: string; pos: [number, number]; ry: number; helmet?: string; shirt?: string; tablet?: boolean;
+  visible: () => boolean;
+  poses: () => Pose[];
+  /** walkers move along a line at their clip's pace (root motion is stripped from the clip) */
+  path?: { from: [number, number]; to: [number, number]; speed: number };
+};
+
+const s2 = () => film.scene === 2;
+const s3 = () => film.scene === 3;
+const loop = (clip: ClipName, offset = 0): (() => Pose[]) => () => [{ clip, time: film.t + offset }];
+
+export const ROLES: Role[] = [
+  // the conventional crew (film 2, and film 3 until the cuts after the wave)
+  { id: 'carpenter', pos: [-3.3, 0.95], ry: -2.49, helmet: '#f2c230', shirt: '#cfd8e2', visible: () => s2() || (s3() && film.story < 38.3), poses: loop('worker_hands', 0.6) },
+  { id: 'mason', pos: [2.2, 0.95], ry: Math.PI, visible: () => s2() || (s3() && film.story < 41), poses: loop('worker_place', 1.4) },
+  { id: 'plasterer', pos: [6.4, 0.85], ry: Math.PI, helmet: '#f2c230', shirt: '#e3d6c6', visible: () => s2() || (s3() && film.story < 41), poses: loop('worker_kneel', 0.3) },
+  { id: 'helper', pos: [-5.2, 3.3], ry: -2.41, helmet: '#3b6db3', visible: () => s2() || (s3() && film.story < 38.3), poses: loop('worker_lift', 2.2) },
+  { id: 'walker', pos: [-8, 8.6], ry: Math.PI / 2, shirt: '#d7d0c4', visible: () => s2() || (s3() && film.story < 41), poses: loop('worker_walk'), path: { from: [-9, 8.6], to: [16, 8.6], speed: 1.25 } },
+  // the builder: calm in film 2; in film 3 he holds the tablet the wave starts from, then settles, satisfied
+  {
+    id: 'builder', pos: [12.0, 6.2], ry: Math.PI, tablet: true, visible: () => film.scene !== 1,
+    poses: () => {
+      if (s2()) return [{ clip: 'builder_idle', time: film.t + 1.3 }];
+      // he checks the tablet, then settles into a relaxed, contented stance
+      const k = smooth(span(film.story, 52.4, 53.3));
+      return [{ clip: 'builder_tablet', time: 3 + (film.story - 36.8), weight: 1 - k }, { clip: 'builder_idle', time: film.story - 52.4, weight: k }];
+    },
   },
-  shutter: { file: '/models/humans/worker_shutter.glb', pos: [-4.0, 0, 0.66], ry: Math.PI, clip: loop('place_panel', 1, 0.4), visible: inS3(38.3) },
-  mason: { file: '/models/humans/worker_mason.glb', pos: [2.3, 0, 0.78], ry: Math.PI, clip: loop('lay_brick', 1, 1.1), visible: inS3(45.0) },
-  plaster: { file: '/models/humans/worker_plaster.glb', pos: [5.9, 0, 0.74], ry: Math.PI, clip: loop('apply_plaster', 1, 0.2), visible: inS3(45.0) },
-};
+  // the new crew (film 3, after the wave): JET panels on the column, premix into the H1
+  { id: 'jet-crew', pos: [-3.2, 1.05], ry: -2.49, helmet: '#f2c230', visible: () => s3() && film.story >= 38.3 && film.story < 45.9, poses: loop('worker_place', 0.2) },
+  { id: 'operator', pos: [-8.0, -1.4], ry: 2.92, shirt: '#cfd8e2', visible: () => s3() && film.story >= 41, poses: loop('worker_place', 3.1) },
+];
 
-type Loaded = { root: THREE.Object3D; mixer: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction>; morphs: THREE.Mesh[]; cast: Cast; last?: string };
+type Loaded = { role: Role; root: THREE.Object3D; mixer: THREE.AnimationMixer; actions: Record<string, THREE.AnimationAction>; tablet?: THREE.Object3D };
+
+/** FBX Phong -> PBR so the cast sits in the same light as the set */
+function pbr(m: THREE.Material) {
+  const p = m as THREE.MeshPhongMaterial;
+  const s = new THREE.MeshStandardMaterial({ map: p.map ?? null, normalMap: p.normalMap ?? null, color: '#ffffff', roughness: 0.78, metalness: 0, transparent: p.transparent, alphaTest: p.transparent ? 0.4 : 0, side: p.transparent ? THREE.DoubleSide : THREE.FrontSide });
+  if (s.transparent) { s.transparent = false; s.depthWrite = true; }
+  return s;
+}
 
 export function Humans() {
   const group = useMemo(() => {
@@ -45,73 +71,93 @@ export function Humans() {
   const loaded = useMemo<Loaded[]>(() => [], []);
 
   useEffect(() => {
-    const draco = new DRACOLoader().setDecoderPath('/draco/');
-    const loader = new GLTFLoader().setDRACOLoader(draco);
     let alive = true;
-    Object.values(CAST).forEach((c) => {
-      // only load files that exist (characters arrive from the Blender pipeline independently)
-      const done = track(c.file);
-      fetch(c.file, { method: 'HEAD' }).then((res) => {
-        if (!res.ok || !(res.headers.get('content-type') ?? '').match(/gltf|octet|binary/)) { done(); return; }
-        loader.load(c.file, (gltf) => {
-          done();
-          if (!alive) return;
-          const root = gltf.scene;
-          root.position.set(...c.pos); root.rotation.y = c.ry;
-          const morphs: THREE.Mesh[] = [];
+    const done = track(CHAR);
+    (async () => {
+      try {
+        const base = await new FBXLoader().loadAsync(CHAR);
+        const clips: Record<string, THREE.AnimationClip> = {};
+        await Promise.all(CLIPS.map(async (n) => {
+          const j = await fetch(`/render-assets/mixamo/clips/${n}.json`).then((r) => r.json());
+          const c = THREE.AnimationClip.parse(j);
+          if (n === 'worker_walk') {
+            // strip horizontal root motion (the role's path moves the walker instead)
+            const hp = c.tracks.find((t) => /Hips\.position$/.test(t.name));
+            if (hp) for (let i = 0; i < hp.values.length; i += 3) { hp.values[i] = hp.values[0]; hp.values[i + 2] = hp.values[2]; }
+          }
+          clips[n] = c;
+        }));
+        if (!alive) return;
+        // one shared PBR material set
+        const matCache = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+        base.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh) return;
+          m.material = ([] as THREE.Material[]).concat(m.material).map((x) => { if (!matCache.has(x)) matCache.set(x, pbr(x)); return matCache.get(x)!; }) as unknown as THREE.Material;
+          if (Array.isArray(m.material) && m.material.length === 1) m.material = m.material[0];
+        });
+        const tabletGeo = new THREE.BoxGeometry(17, 24, 1.1);
+        const tabletMat = [new THREE.MeshStandardMaterial({ color: '#2a2e33', roughness: 0.4, metalness: 0.5 })];
+        const screenMat = new THREE.MeshStandardMaterial({ color: '#0d1b2a', emissive: new THREE.Color('#2a6fb5'), emissiveIntensity: 0.55, roughness: 0.15 });
+        for (const role of ROLES) {
+          const root = SkeletonUtils.clone(base);
+          root.scale.setScalar(0.01);
+          root.position.set(role.pos[0], 0, role.pos[1]);
+          root.rotation.y = role.ry;
           root.traverse((o) => {
             const m = o as THREE.Mesh;
-            if (o.name.startsWith('CTX_')) { o.visible = false; return; }   // context props baked in the files; the scene supplies its own
-            if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; if (m.morphTargetDictionary) morphs.push(m); }
+            if (!m.isMesh) return;
+            m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
+            const tint = /Helmet/i.test(m.name) ? role.helmet : /Shirt/i.test(m.name) ? role.shirt : undefined;
+            if (tint) { const c = (m.material as THREE.MeshStandardMaterial).clone(); c.color.set(tint); m.material = c; }
           });
           const mixer = new THREE.AnimationMixer(root);
           const actions: Record<string, THREE.AnimationAction> = {};
-          gltf.animations.forEach((clip) => { const a = mixer.clipAction(clip); a.play(); a.enabled = false; a.weight = 1; actions[clip.name] = a; });
+          for (const n of CLIPS) { const a = mixer.clipAction(clips[n]); a.play(); a.enabled = false; actions[n] = a; }
+          let tablet: THREE.Object3D | undefined;
+          if (role.tablet) {
+            const hand = root.getObjectByName('mixamorig1LeftHand') ?? root.getObjectByName('mixamorigLeftHand');
+            if (hand) {
+              tablet = new THREE.Group();
+              const body = new THREE.Mesh(tabletGeo, tabletMat[0]); body.castShadow = true;
+              const screen = new THREE.Mesh(new THREE.PlaneGeometry(15.4, 21.6), screenMat); screen.position.z = 0.56;
+              tablet.add(body, screen);
+              tablet.position.set(0, 9, 3); tablet.rotation.set(1.0, 0, 0);   // held in front, screen tilted up to his eyes
+              hand.add(tablet);
+            }
+          }
           group.add(root);
-          loaded.push({ root, mixer, actions, morphs, cast: c });
-        }, undefined, () => done());
-      }).catch(() => done());
-    });
-    return () => { alive = false; draco.dispose(); };
+          loaded.push({ role, root, mixer, actions, tablet });
+        }
+      } finally { done(); }
+    })();
+    return () => { alive = false; };
   }, [group, loaded]);
 
   useFrame(() => {
-    const t = film.t;
     group.visible = film.scene !== 1;
+    if (!group.visible) return;
     for (const L of loaded) {
-      const vis = L.cast.visible(t);
+      const vis = L.role.visible();
       L.root.visible = vis;
       if (!vis) continue;
-      const want = L.cast.clip(t);
-      const names = Object.keys(L.actions);
-      const name = want && L.actions[want.name] ? want.name : names[0];
-      if (!name) continue;
-      for (const n of names) L.actions[n].enabled = n === name;
-      const a = L.actions[name];
-      const dur = a.getClip().duration || 1;
-      const time = want ? want.time : t;
-      a.time = name.startsWith('step_back') ? Math.min(time, dur - 1e-3) : ((time % dur) + dur) % dur;
-      L.mixer.update(0);
-      // natural blinks: ~every 3.2-4.6 s, 140 ms; the builder's smile is baked in his clip (morph keys)
-      const seed = L.cast.pos[0] * 1.7;
-      const period = 3.2 + (Math.abs(Math.sin(seed)) * 1.4);
-      const ph = ((t + seed) % period) / period;
-      const blink = ph < 0.035 ? Math.sin((ph / 0.035) * Math.PI) : 0;
-      const isBuilder = L.cast === CAST.builder;
-      const reaction = isBuilder && film.scene === 3 && film.story > 52.4 && film.story < 54.2;     // eyes read open during the reaction
-      for (const m of L.morphs) {
-        const i = m.morphTargetDictionary!['blink'];
-        if (i !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[i] = reaction ? 0 : blink;
-        // restrained smile: cap the clip's smile so the eye squint stays subtle (cheeks lift, eyes stay open)
-        const sm = m.morphTargetDictionary!['smile'];
-        if (isBuilder && sm !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[sm] = Math.min(m.morphTargetInfluences[sm], 0.42);
-        const br = m.morphTargetDictionary!['brow_raise'];
-        if (reaction && br !== undefined && m.morphTargetInfluences) m.morphTargetInfluences[br] = 0.18 * span(film.story, 52.8, 53.6);
-        // subtle restrained smile only in shot 12 (in case the clip has no morph keys)
-        const s = m.morphTargetDictionary!['smile'];
-        if (s !== undefined && m.morphTargetInfluences && L.cast === CAST.builder && !L.actions['step_back_tablet']?.getClip().tracks.some((tr) => tr.name.includes('morphTargetInfluences')))
-          m.morphTargetInfluences[s] = film.scene === 3 ? 0.55 * span(film.story, 52.6, 53.6) : 0;
+      if (L.role.path) {
+        const { from, to, speed } = L.role.path;
+        const len = Math.hypot(to[0] - from[0], to[1] - from[1]);
+        const u = ((film.t * speed) % len) / len;
+        L.root.position.set(from[0] + (to[0] - from[0]) * u, 0, from[1] + (to[1] - from[1]) * u);
       }
+      const poses = L.role.poses();
+      for (const n of CLIPS) L.actions[n].enabled = false;
+      for (const p of poses) {
+        const a = L.actions[p.clip];
+        const dur = a.getClip().duration || 1;
+        a.enabled = true;
+        a.setEffectiveWeight(p.weight ?? 1);
+        a.time = p.hold ? Math.min(Math.max(0, p.time), dur - 0.01) : ((p.time % dur) + dur) % dur;
+      }
+      L.mixer.update(0);
+      if (L.tablet) L.tablet.visible = film.scene === 3;
     }
   });
 

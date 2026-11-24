@@ -31,32 +31,35 @@ export type Film = { id: 's1' | 's2' | 's3'; index: string; chapter: string; dur
 
 export const FILMS: Film[] = [
   {
-    id: 's1', index: '01', chapter: 'The apex of modern construction', duration: 23,
+    id: 's1', index: '01', chapter: 'The apex of modern construction', duration: 19,
     cues: [
-      { kind: 'title', text: 'Successful modern construction technology', from: 0.4, to: 3.2 },
-      { kind: 'label', text: 'Aluform Systems', anchor: 'aluform', from: 2.8, to: 5.4 },
-      { kind: 'label', text: 'Volumetric Precast', anchor: 'precast', from: 6.0, to: 10.4 },
-      { kind: 'label', text: 'Panelized Construction', anchor: 'factory', from: 11.2, to: 15.6 },
-      { kind: 'statement', text: 'Speed, precision and sustainability, delivered to the industry’s largest projects.', from: 17.4, to: 99, place: 'lower' },
+      { kind: 'title', text: 'Successful modern construction technology', from: 0.3, to: 2.7 },
+      { kind: 'label', text: 'Aluform Systems', anchor: 'aluform', from: 2.3, to: 4.5 },
+      { kind: 'label', text: 'Volumetric Precast', anchor: 'precast', from: 5.0, to: 8.8 },
+      { kind: 'label', text: 'Panelized Construction', anchor: 'factory', from: 9.4, to: 13.2 },
+      { kind: 'statement', text: 'Speed, precision and sustainability, delivered to the industry\u2019s largest projects.', from: 14.4, to: 99, place: 'lower' },
     ],
   },
   {
     id: 's2', index: '02', chapter: 'The reality on the ground', duration: 19.5,
     cues: [
-      { kind: 'label', text: 'High capital entry barriers', anchor: 'plywood', from: 5.1, to: 8.3 },
-      { kind: 'label', text: 'The technology gap', anchor: 'brick', from: 12.1, to: 15.4 },
+      { kind: 'label', text: 'Plywood shuttering', anchor: 'plywood', from: 5.0, to: 8.2 },
+      { kind: 'statement', text: 'High capital entry barriers.', from: 8.8, to: 11.4, place: 'upper' },
+      { kind: 'label', text: 'Brickwork, then plaster', anchor: 'brick', from: 12.0, to: 15.2 },
+      { kind: 'statement', text: 'The technology gap.', from: 12.4, to: 15.2, place: 'upper' },
       { kind: 'statement', text: 'Modern technology shouldn’t belong only to the giants.', from: 15.9, to: 99, place: 'centre' },
     ],
   },
   {
-    id: 's3', index: '03', chapter: 'The Hemisphere One bridge', duration: 24,
+    id: 's3', index: '03', chapter: 'The Hemisphere One bridge', duration: 26,
     cues: [
-      { kind: 'statement', text: 'We are here to bridge the gap.', from: 0.5, to: 4.0, place: 'upper' },
-      { kind: 'label', text: 'Jet Plastic Formwork', anchor: 'jet', from: 4.6, to: 7.9 },
-      { kind: 'label', text: 'H1-561 Concrete Machinery', anchor: 'h1', from: 8.5, to: 11.5 },
-      { kind: 'label', text: 'Concrete Premix', anchor: 'premix', from: 9.3, to: 11.5 },
-      { kind: 'label', text: 'Monolithic wall · zero plastering', anchor: 'wall', from: 13.7, to: 15.1 },
-      { kind: 'lockup', from: 19.6, to: 99 },
+      { kind: 'statement', text: 'We are here to bridge the gap.', from: 0.5, to: 3.6, place: 'upper' },
+      { kind: 'label', text: 'Jet Plastic Formwork', anchor: 'jet', from: 4.6, to: 7.8 },
+      { kind: 'label', text: 'H1-561 Concrete Machinery', anchor: 'h1', from: 8.4, to: 11.4 },
+      { kind: 'label', text: 'Concrete Premix', anchor: 'premix', from: 9.0, to: 11.4 },
+      { kind: 'label', text: 'Monolithic wall · zero plastering', anchor: 'wall', from: 13.4, to: 15.0 },
+      { kind: 'statement', text: 'Machinery, formwork and materials, wherever the work is.', from: 19.6, to: 22.6, place: 'lower' },
+      { kind: 'lockup', from: 22.9, to: 99 },
     ],
   },
 ];
@@ -77,11 +80,14 @@ export const MODERN = {
 // ------------------------------------------------------------------ after film 2: why the gap persists
 export const GAP = {
   kicker: 'Why it hasn’t changed',
-  paras: [
-    'Modern systems were built for the giants. They arrive as large capital purchases, with specialist crews and a long road to payback, sized for contractors who build at scale.',
-    'For the builders who put up most of our homes, schools and shops, that model never fits. Timber, bricks and plaster are familiar, available today and paid for one day at a time. So the old way stays the safe way, and the gap keeps widening.',
-    'What has been missing is modern technology sized for a single site, supplied with the materials and the support to use it well.',
-  ],
+  /** staged lines, each with the words that carry it (marked on reveal) */
+  lines: [
+    { text: 'Modern construction was built for the giants.', mark: 'the giants', size: 'xl' },
+    { text: 'Big machines. Specialist crews. Money up front.', mark: 'Money up front.', size: 'l' },
+    { text: 'So everyday sites stay with timber, brick and plaster:', mark: 'timber, brick and plaster', size: 'm' },
+    { text: 'familiar, available, paid for one day at a time.', mark: 'one day at a time', size: 'm' },
+    { text: 'Nothing modern was ever sized for a single site.', mark: 'a single site', size: 'l' },
+  ] as { text: string; mark: string; size: 'xl' | 'l' | 'm' }[],
   cue: { words: 'The Hemisphere One bridge', line: 'Elite engineering, in every builder’s hands.' },
 };
 

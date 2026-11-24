@@ -16,7 +16,7 @@ export const H = TOWER.half, FL = TOWER.floor;
  * Scene 1 time-lapse, paced for a calm read: the Aluform shot (0-5.6 s) shows the walls being formed and the deck
  * assembled; pour, strike and climb finish during the precast shot; the next floor climbs slowly in the background.
  */
-const FLOORS_AT: [number, number][] = [[0, 17.08], [5.6, 17.64], [10.8, 18.0], [23, 19.1], [99, 19.1]];
+const FLOORS_AT: [number, number][] = [[0, 17.08], [4.6, 17.64], [9.0, 18.0], [19, 19.0], [99, 19.0]];
 export const towerFloors = (t: number, scene: number) => (scene === 1 ? pw(t, FLOORS_AT) : TOWER.floors);
 export const PIER = 1.2, WIN = 1.8, MOD = PIER + WIN;   // facade rhythm
 export const SILL = 0.9, HEAD = 2.25;                   // window opening, above slab top

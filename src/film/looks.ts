@@ -42,6 +42,22 @@ export const LOOKS: Record<SceneId, Look> = {
   },
 };
 
+/** Scene 3, second half (from the builder shot): the site has changed, and so has the light. Clear, high
+ *  modern daylight in place of the dusty golden hour. */
+export const LOOK_3B: Look = {
+  sun: { az: 340, el: 40, color: '#fff5e8', intensity: 3.6, soft: 0.8 },   // a three-quarter key on the builder; the house shadow falls away from the yard
+  fill: { sky: '#cfe0f0', ground: '#bdb6aa', intensity: 0.5 },
+  sky: { kind: 'physical', turbidity: 2.2, rayleigh: 2.0, mie: 0.003, g: 0.8, exposure: 0.55 },
+  fog: { color: '#d6e1ea', density: 0.00048 },
+  env: 0.85, tone: 'agx',
+  grade: { exposure: 1.06, warm: 0.0, tint: 0, contrast: 1.08, sat: 1.06, lift: 0.0, vignette: 0.1 },
+};
+/** the look in force right now (Scene 3 switches on the cut into the builder shot) */
+export function activeLook(scene: SceneId, story: number): { key: string; look: Look } {
+  if (scene === 3 && story >= 49.95) return { key: '3b', look: LOOK_3B };
+  return { key: String(scene), look: LOOKS[scene] };
+}
+
 /** unit vector toward the sun */
 export function sunDir(look: Look, out: { x: number; y: number; z: number }, jitterX = 0, jitterY = 0) {
   const az = ((look.sun.az + jitterX * look.sun.soft) * Math.PI) / 180;

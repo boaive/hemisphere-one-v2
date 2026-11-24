@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
-import { film, type SceneId } from '../film/clock';
-import { LOOKS, sunDir } from '../film/looks';
+import { film } from '../film/clock';
+import { activeLook, sunDir, type Look } from '../film/looks';
 import { camState } from '../film/CameraRig';
 
 /**
@@ -56,7 +56,7 @@ function makePhysicalSky() {
 
 export function Atmosphere() {
   const { scene, gl, camera } = useThree();
-  const scn = useRef<SceneId | 0>(0);
+  const scn = useRef<string>('');
 
   const rig = useMemo(() => {
     const sun = new THREE.DirectionalLight('#ffffff', 3);
@@ -76,8 +76,7 @@ export function Atmosphere() {
   }, [scene, rig]);
 
   /** configure everything that is constant within a film; regenerate the environment map from the sky */
-  const configure = (id: SceneId) => {
-    const L = LOOKS[id];
+  const configure = (key: string, L: Look) => {
     sunDir(L, rig.tmp.d);
     SUN.set(rig.tmp.d.x, rig.tmp.d.y, rig.tmp.d.z);
     const grad = L.sky.kind === 'gradient';
@@ -113,12 +112,13 @@ export function Atmosphere() {
     pm.dispose();
     scene.environment = rig.envRT.texture;
     scene.environmentIntensity = L.env * (grad ? 1 : 0.35);
-    scn.current = id;
+    scn.current = key;
   };
 
   useFrame(() => {
-    if (scn.current !== film.scene) configure(film.scene);
-    const L = LOOKS[film.scene];
+    const A = activeLook(film.scene, film.story);
+    if (scn.current !== A.key) configure(A.key, A.look);
+    const L = A.look;
     // soft shadows: offline renders jitter the sun across a small disc, averaged by accumulation
     sunDir(L, rig.tmp.d, film.render ? film.sub.sx : 0, film.render ? film.sub.sy : 0);
     // shadow frustum follows what the camera looks at, sized by the scale of the shot

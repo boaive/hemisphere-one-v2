@@ -4,7 +4,7 @@ import { EffectComposer, N8AO, Bloom, ToneMapping } from '@react-three/postproce
 import { Effect, BlendFunction, ToneMappingMode } from 'postprocessing';
 import * as THREE from 'three';
 import { film } from '../film/clock';
-import { LOOKS } from '../film/looks';
+import { LOOKS, activeLook } from '../film/looks';
 import { camState } from '../film/CameraRig';
 
 /**
@@ -49,7 +49,7 @@ export function Post({ draft = false }: { draft?: boolean }) {
   const ao = useRef<any>(null);
   useFrame((state) => {
     const g = grade.current; if (!g) return;
-    const G = LOOKS[film.scene].grade;
+    const G = activeLook(film.scene, film.story).look.grade;
     const u = (k: string) => g.uniforms.get(k)!;
     u('uExposure').value = G.exposure; u('uWarm').value = G.warm; u('uTint').value = G.tint;
     u('uContrast').value = G.contrast; u('uSat').value = G.sat; u('uVignette').value = G.vignette; u('uLift').value = G.lift;
